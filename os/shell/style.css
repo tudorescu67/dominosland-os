@@ -32,8 +32,13 @@ main { display: grid; gap: 1.5rem; grid-template-columns: 2fr 1fr; align-items: 
   background: var(--glass); border: 1px solid var(--border); border-radius: 1.25rem;
   backdrop-filter: blur(12px); padding: 1.25rem 1.5rem;
 }
-.tile { position: relative; min-height: 9rem; transition: transform .15s, border-color .15s; }
+.tile { position: relative; display: block; width: 100%; text-align: left; font: inherit; color: inherit; min-height: 9rem; transition: transform .15s, border-color .15s; }
 .tile:hover { transform: translateY(-2px); border-color: var(--blue); }
+button.tile { cursor: pointer; border-color: rgba(59,130,246,.45); }
+button.tile:disabled { cursor: progress; opacity: .6; transform: none; }
+button.tile[data-on="true"] { border-color: #4ade80; }
+.tile.soon { opacity: .7; }
+.tile.soon:hover { transform: none; border-color: var(--border); }
 .tile h2, .card h2 { margin: 0 0 .4rem; font-size: 1.25rem; }
 .tile p { margin: 0; color: var(--muted); font-size: .95rem; }
 .badge {
@@ -56,3 +61,17 @@ main { display: grid; gap: 1.5rem; grid-template-columns: 2fr 1fr; align-items: 
   *, *::before, *::after { transition: none !important; animation: none !important; }
   .tile:hover { transform: none; }
 }
+.toast { margin: .4rem 0 0; padding: .5rem 1rem; border-radius: .75rem; background: var(--glass); border: 1px solid var(--border); }
+.toast[data-state="ok"] { color: #4ade80; }
+.toast[data-state="error"] { color: #f87171; }
+.jarvis { width: min(36rem, 90vw); color: var(--text); background: #0d1328; border: 1px solid var(--border); border-radius: 1.25rem; padding: 1.5rem; }
+.jarvis::backdrop { background: rgba(0,0,0,.65); }
+.jarvis h2 { margin: 0 0 .75rem; }
+.jarvis label { display: block; color: var(--muted); margin-bottom: .3rem; }
+.jarvis input { width: 100%; padding: .6rem .8rem; font: inherit; color: var(--text); background: var(--glass); border: 1px solid var(--border); border-radius: .75rem; }
+.j-row { display: flex; gap: .75rem; margin-top: .75rem; }
+.btn { padding: .5rem 1.2rem; font: inherit; color: #fff; background: var(--grad); border: 0; border-radius: .75rem; cursor: pointer; }
+.btn.ghost { background: var(--glass); border: 1px solid var(--border); }
+.btn:disabled { opacity: .6; cursor: progress; }
+[aria-busy="true"] { cursor: progress; }
+.j-answer { margin: 1rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 40vh; overflow: auto; }

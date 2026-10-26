@@ -98,5 +98,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash -n os/build.sh
-      - run: for f in os/image/auto/* os/image/config/hooks/normal/*; do sh -n "$f"; done
+      - run: sh os/image/tests/test-user-generator.sh
+      - run: sh -n os/image/config/includes.chroot/usr/local/bin/dominosland-session
+      - run: node -e "new Function(require('fs').readFileSync('os/image/config/includes.chroot/etc/polkit-1/rules.d/50-dominosland-gamemode.rules','utf8'))"
+      - run: for f in os/image/auto/* os/image/config/hooks/normal/* os/image/config/includes.chroot/usr/lib/systemd/system-generators/*; do sh -n "$f"; done
       - run: systemd-analyze verify --man=no os/image/config/includes.chroot/etc/systemd/system/*.service || true

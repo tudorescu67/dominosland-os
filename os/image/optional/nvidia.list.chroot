@@ -1,0 +1,10 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Varianta NVIDIA a imaginii: driverul proprietar, pentru performanta maxima in jocuri pe placile GeForce.
+# E separata de imaginea standard pentru ca driverul proprietar dezactiveaza nouveau, iar placile NVIDIA
+# foarte vechi, nesuportate de driverul curent, ar ramane fara imagine.
+# Modulul kernel se compileaza cu DKMS in timpul construirii imaginii, deci are nevoie de headere.
+linux-headers-amd64
+nvidia-kernel-dkms
+nvidia-driver
+nvidia-vulkan-icd
+firmware-nvidia-gsp

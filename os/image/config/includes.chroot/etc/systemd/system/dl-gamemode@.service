@@ -1,0 +1,16 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Modul joc: scrie guvernorii procesorului, deci are nevoie de root.
+# Utilizatorul il porneste fara parola doar pentru instantele on/off (vezi regula polkit).
+[Unit]
+Description=DominosLand OS - modul joc (%i)
+
+[Service]
+Type=oneshot
+# on si off sunt unit-uri diferite, deci pot rula simultan (ex. buton + Jarvis). Fara blocare, off ar putea
+# restaura si sterge starea in timp ce on inca scrie guvernorii, iar procesorul ar ramane pe performance.
+ExecStart=/usr/bin/flock /run/dominosland/gamemode.lock /usr/local/bin/dl-gamemode %i
+RuntimeDirectory=dominosland
+RuntimeDirectoryPreserve=yes
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes

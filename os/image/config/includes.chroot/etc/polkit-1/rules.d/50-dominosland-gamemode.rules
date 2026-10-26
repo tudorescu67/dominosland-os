@@ -1,0 +1,15 @@
+/* Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. */
+// Utilizatorul din fata calculatorului (sesiune locala si activa) poate porni/opri modul joc fara parola.
+// Doar cele doua instante exacte: orice alt unit systemd cere in continuare autentificare.
+polkit.addRule(function (action, subject) {
+  if (action.id !== "org.freedesktop.systemd1.manage-units") {
+    return polkit.Result.NOT_HANDLED;
+  }
+  var unit = action.lookup("unit");
+  var verb = action.lookup("verb");
+  if ((unit === "dl-gamemode@on.service" || unit === "dl-gamemode@off.service") &&
+      verb === "start" && subject.local && subject.active) {
+    return polkit.Result.YES;
+  }
+  return polkit.Result.NOT_HANDLED;
+});

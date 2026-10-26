@@ -1,0 +1,129 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Construieste ISO-ul DominosLand OS.
+#
+# live-build are nevoie de Debian 13 si de root (chroot, mount, mknod), deci ruleaza intr-un container
+# debian:trixie --privileged pe runner-ul GitHub. Launcherul se construieste inainte, ca .deb, si intra in imagine.
+#
+# - pull request care schimba imaginea: ISO standard, ca verificare (artefact 7 zile)
+# - manual din Actions: varianta aleasa (standard sau nvidia)
+# - tag os-v* (git tag os-v0.1.0 && git push origin os-v0.1.0): ambele variante, publicate in Releases
+name: OS image
+
+on:
+  pull_request:
+    paths:
+      - 'os/image/**'
+      - 'os/build.sh'
+      - '.github/workflows/os-image.yml'
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Varianta imaginii'
+        type: choice
+        options: [standard, nvidia]
+        default: standard
+  push:
+    tags: ['os-v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: os-image-${{ github.ref }}-${{ inputs.variant || 'auto' }}
+  cancel-in-progress: true
+
+jobs:
+  launcher-deb:
+    name: Launcher (.deb)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/desktop } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/desktop/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --linux deb --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher-deb
+          path: apps/desktop/release/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  iso:
+    name: ISO ${{ matrix.variant }}
+    needs: launcher-deb
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.variant) || github.event_name == 'push' && '["standard","nvidia"]' || '["standard"]') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Imaginea are cativa GB in lucru; runner-ul vine cu SDK-uri mari de care nu avem nevoie.
+      - name: Elibereaza spatiu pe disc
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: actions/download-artifact@v4
+        with: { name: launcher-deb, path: os/out/launcher }
+
+      - name: Construieste ISO-ul in Debian 13
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          docker run --rm --privileged -e VARIANT -v "$PWD":/src -w /src/os debian:trixie bash -euc '
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              live-build debootstrap ca-certificates xz-utils \
+              cargo rustc cmake ninja-build g++ nodejs python3
+            ./build.sh iso "$VARIANT"
+          '
+
+      - name: Verifica ISO-ul
+        id: iso
+        run: |
+          iso="$(ls os/out/image/*.iso)"
+          size=$(stat -c %s "$iso")
+          echo "path=$iso" >> "$GITHUB_OUTPUT"
+          echo "size=$size" >> "$GITHUB_OUTPUT"
+          echo "ISO: $iso ($((size / 1024 / 1024)) MB)" >> "$GITHUB_STEP_SUMMARY"
+          ( cd "$(dirname "$iso")" && sha256sum "$(basename "$iso")" ) | tee "$iso.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dominosland-os-${{ matrix.variant }}
+          path: |
+            os/out/image/*.iso
+            os/out/image/*.iso.sha256
+          compression-level: 0
+          retention-days: 7
+
+      # GitHub Releases accepta fisiere de cel mult 2 GiB; un ISO mai mare se imparte in bucati.
+      - name: Pregateste fisierele pentru release
+        if: startsWith(github.ref, 'refs/tags/os-v')
+        env:
+          ISO: ${{ steps.iso.outputs.path }}
+          SIZE: ${{ steps.iso.outputs.size }}
+        run: |
+          mkdir -p release
+          iso="$ISO"
+          if [ "$SIZE" -lt 2000000000 ]; then
+            cp "$iso" "$iso.sha256" release/
+          else
+            split -d -b 1900M "$iso" "release/$(basename "$iso").part-"
+            cp "$iso.sha256" release/
+            echo "ISO-ul e impartit in bucati: cat $(basename "$iso").part-* > $(basename "$iso")" > release/CUM-SE-UNESTE.txt
+          fi
+          ls -lh release
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/os-v')
+        with:
+          name: DominosLand OS ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release/*

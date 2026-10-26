@@ -1,0 +1,33 @@
+#!/bin/sh
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Alege utilizatorul pentru interfata DominosLand OS, la fiecare pornire.
+#
+# Pe imaginea live utilizatorul e "dominos", dar dupa instalare are numele ales in installer.
+# Un generator systemd ruleaza inainte sa se incarce unit-urile, deci poate seta User= fara daemon-reload.
+# Regula: primul utilizator obisnuit (UID 1000-59999, cu shell de login); altfel "dominos".
+set -eu
+
+OUT="${1:?director de iesire lipsa}"
+PASSWD="${DL_PASSWD:-/etc/passwd}"
+
+user=""
+if [ -r "$PASSWD" ]; then
+	user="$(awk -F: '
+		$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ {
+			if (best == "" || $3 < best) { best = $3; name = $1 }
+		}
+		END { if (name != "") print name }
+	' "$PASSWD")"
+fi
+[ -n "$user" ] || user="dominos"
+
+# Numele vine din /etc/passwd, dar il validam oricum: ajunge intr-un fisier de configurare systemd.
+case "$user" in
+	*[!a-z0-9_.-]* | -*) user="dominos" ;;
+esac
+
+mkdir -p "$OUT/dominosland-shell.service.d"
+cat > "$OUT/dominosland-shell.service.d/50-user.conf" <<EOF
+[Service]
+User=$user
+EOF

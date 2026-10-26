@@ -1,21 +1,22 @@
 // Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
-// Serverul asculta doar pe loopback implicit: API-ul nu are autentificare.
-use crate::status;
+// Serverul asculta doar pe loopback implicit: API-ul nu are parole, granita e UID-ul clientului (peer.rs).
+use crate::{actions, peer, status};
 use std::fs;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const MAX_HEADER: usize = 8 * 1024;
+const MAX_BODY: usize = 4096;
 
 pub struct Response {
     code: u16,
     ctype: &'static str,
     body: Vec<u8>,
     api: bool,
-    allow: bool,
+    allow: &'static str,
 }
 
 fn reason(code: u16) -> &'static str {
@@ -23,17 +24,32 @@ fn reason(code: u16) -> &'static str {
         200 => "OK",
         400 => "Bad Request",
         404 => "Not Found",
+        403 => "Forbidden",
         405 => "Method Not Allowed",
+        411 => "Length Required",
+        413 => "Payload Too Large",
+        421 => "Misdirected Request",
+        500 => "Internal Server Error",
+        503 => "Service Unavailable",
+        504 => "Gateway Timeout",
         _ => "Error",
     }
 }
 
 fn text(code: u16, msg: &str) -> Response {
-    Response { code, ctype: "text/plain; charset=utf-8", body: msg.as_bytes().to_vec(), api: false, allow: code == 405 }
+    Response { code, ctype: "text/plain; charset=utf-8", body: msg.as_bytes().to_vec(), api: false, allow: if code == 405 { "GET, HEAD" } else { "" } }
+}
+
+fn json_code(code: u16, body: String) -> Response {
+    Response { code, ctype: "application/json", body: body.into_bytes(), api: true, allow: "" }
 }
 
 fn json_resp(body: String) -> Response {
-    Response { code: 200, ctype: "application/json", body: body.into_bytes(), api: true, allow: false }
+    json_code(200, body)
+}
+
+fn deny(code: u16, error: &str) -> Response {
+    json_code(code, format!("{{\"ok\":false,\"error\":{}}}", crate::json::string(error)))
 }
 
 /// Extrage (metoda, tinta) din linia de start; None = cerere malformata.
@@ -96,24 +112,71 @@ fn content_type(p: &Path) -> &'static str {
     }
 }
 
-pub fn route(method: &str, target: &str, shell_dir: &Path) -> Response {
-    if method != "GET" && method != "HEAD" {
-        return text(405, "Metoda nepermisa\n");
-    }
+/// Rute doar-citire (GET/HEAD); metoda e deja verificata de apelant.
+pub fn route(target: &str, shell_dir: &Path) -> Response {
     let path = target.split(['?', '#']).next().unwrap_or("");
     match path {
         "/api/health" => json_resp("{\"ok\":true}".to_string()),
         "/api/status" => json_resp(status::collect().to_json(false)),
+        "/api/gamemode" => json_resp(actions::gamemode_status()),
         _ => match resolve_static(shell_dir, target).and_then(|p| fs::read(&p).ok().map(|b| (p, b))) {
-            Some((p, body)) => Response { code: 200, ctype: content_type(&p), body, api: false, allow: false },
+            Some((p, body)) => Response { code: 200, ctype: content_type(&p), body, api: false, allow: "" },
             None => text(404, "Nu a fost gasit\n"),
         },
     }
 }
 
+/// Valoarea primului antet cu numele dat (fara diferenta mare/mic).
+fn header<'a>(head: &'a str, name: &str) -> Option<&'a str> {
+    head.lines().skip(1).find_map(|l| {
+        let (k, v) = l.split_once(':')?;
+        k.trim().eq_ignore_ascii_case(name).then(|| v.trim())
+    })
+}
+
+/// Verificarile unui POST, in ordine; Err = raspunsul de trimis. Motivul exact merge doar pe stderr.
+fn check_post(head: &str, host: &str) -> Result<usize, Response> {
+    let refuse = |why: &str| {
+        eprintln!("dominosd: cerere respinsa: {why}");
+        deny(403, "Cerere respinsa")
+    };
+    // Antet custom: o pagina straina nu-l poate trimite fara preflight CORS, la care nu raspundem niciodata.
+    if header(head, "X-DominosLand-Action") != Some("1") {
+        return Err(refuse("lipseste X-DominosLand-Action"));
+    }
+    if header(head, "Origin") != Some(&format!("http://{host}")) {
+        return Err(refuse("Origin lipsa sau straina"));
+    }
+    if !header(head, "Content-Type").is_some_and(|c| c.to_ascii_lowercase().starts_with("application/json")) {
+        return Err(refuse("Content-Type nu e application/json"));
+    }
+    let len = header(head, "Content-Length").ok_or_else(|| deny(411, "Content-Length lipseste"))?;
+    match len.parse::<usize>() {
+        Ok(n) if n <= MAX_BODY => Ok(n),
+        Ok(_) => Err(deny(413, "Corp prea mare")),
+        Err(_) => Err(deny(400, "Content-Length invalid")),
+    }
+}
+
+fn read_body(s: &mut TcpStream, mut body: Vec<u8>, len: usize) -> Option<Vec<u8>> {
+    body.truncate(len);
+    let mut chunk = [0u8; 1024];
+    while body.len() < len {
+        match s.read(&mut chunk) {
+            Ok(0) | Err(_) => return None,
+            Ok(n) => body.extend_from_slice(&chunk[..n.min(len - body.len())]),
+        }
+    }
+    Some(body)
+}
+
 fn write_response(s: &mut TcpStream, r: &Response, head_only: bool) -> std::io::Result<()> {
+    // Anti-clickjacking pe orice raspuns: o pagina straina care ar incadra shell-ul ar putea pacali
+    // utilizatorul sa apese butoane care trimit cereri legitime. `frame-ancestors` nu are efect din
+    // <meta> (index.html), doar ca antet HTTP; X-Frame-Options acopera browserele mai vechi.
     let mut h = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n\
+         X-Frame-Options: DENY\r\nContent-Security-Policy: frame-ancestors 'none'\r\n",
         r.code,
         reason(r.code),
         r.ctype,
@@ -122,8 +185,8 @@ fn write_response(s: &mut TcpStream, r: &Response, head_only: bool) -> std::io::
     if r.api {
         h.push_str("Cache-Control: no-store\r\n");
     }
-    if r.allow {
-        h.push_str("Allow: GET, HEAD\r\n");
+    if !r.allow.is_empty() {
+        h.push_str(&format!("Allow: {}\r\n", r.allow));
     }
     h.push_str("\r\n");
     s.write_all(h.as_bytes())?;
@@ -133,13 +196,79 @@ fn write_response(s: &mut TcpStream, r: &Response, head_only: bool) -> std::io::
     s.flush()
 }
 
-fn handle(mut s: TcpStream, shell_dir: &Path) {
+fn respond(s: &mut TcpStream, buf: &[u8], shell_dir: &Path, port: u16) -> Response {
+    let Some(end) = buf.windows(4).position(|w| w == b"\r\n\r\n") else {
+        return text(400, "Cerere invalida\n");
+    };
+    let Some((method, target)) = std::str::from_utf8(&buf[..end]).ok().and_then(parse_request) else {
+        return text(400, "Cerere invalida\n");
+    };
+    let head = std::str::from_utf8(&buf[..end]).unwrap_or("");
+    // DNS rebinding: un domeniu strain care ajunge la 127.0.0.1 isi tradeaza Host-ul.
+    let host = header(head, "Host").unwrap_or("");
+    if host != format!("127.0.0.1:{port}") && host != format!("localhost:{port}") {
+        return deny(421, "Host nepermis");
+    }
+    let path = target.split(['?', '#']).next().unwrap_or("");
+    if let Some(name) = path.strip_prefix("/api/actions/") {
+        if method != "POST" {
+            let mut r = text(405, "Metoda nepermisa\n");
+            r.allow = "POST";
+            return r;
+        }
+        let len = match check_post(head, host) {
+            Ok(n) => n,
+            Err(r) => return r,
+        };
+        return match read_body(s, buf[end + 4..].to_vec(), len) {
+            Some(body) => {
+                let (code, out) = actions::dispatch(name, &body);
+                json_code(code, out)
+            }
+            None => text(400, "Cerere invalida\n"),
+        };
+    }
+    if method != "GET" && method != "HEAD" {
+        return text(405, "Metoda nepermisa\n");
+    }
+    route(target, shell_dir)
+}
+
+/// Raspunsul pentru un client strain, fara sa citim sau sa interpretam cererea lui.
+fn refuse_connection(mut s: TcpStream, why: &str) {
+    eprintln!("dominosd: conexiune refuzata: {why}");
+    let _ = write_response(&mut s, &deny(403, "Conexiune nepermisa"), false);
+    // close() cu date necitite trimite RST in loc de FIN, iar clientul ar pierde raspunsul de mai sus.
+    // Trimitem intai FIN, apoi aruncam ce mai vine, cu limita de timp si de marime ca sa nu ne tina ocupati.
+    let _ = s.shutdown(Shutdown::Write);
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let mut sink = [0u8; 1024];
+    let mut left = MAX_HEADER + MAX_BODY;
+    while left > 0 {
+        let wait = deadline.saturating_duration_since(Instant::now());
+        if wait.is_zero() || s.set_read_timeout(Some(wait)).is_err() {
+            break;
+        }
+        match s.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => left = left.saturating_sub(n),
+        }
+    }
+}
+
+fn handle(mut s: TcpStream, shell_dir: &Path, port: u16, allowed_uid: u32) {
+    // Inainte de orice citire: un alt cont local poate imita perfect un browser (Host, Origin, antete),
+    // deci singurul lucru pe care nu-l poate falsifica e proprietarul socket-ului sau.
+    if let Err(why) = peer::check(&s, allowed_uid) {
+        return refuse_connection(s, &why);
+    }
     let _ = s.set_read_timeout(Some(Duration::from_secs(5)));
     let mut buf = Vec::new();
     let mut chunk = [0u8; 1024];
+    // Corpul poate sosi in aceleasi citiri ca antetele; limita se aplica doar antetelor.
     let complete = loop {
-        if buf.windows(4).any(|w| w == b"\r\n\r\n") {
-            break true;
+        if let Some(p) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            break p <= MAX_HEADER;
         }
         if buf.len() >= MAX_HEADER {
             break false;
@@ -149,18 +278,19 @@ fn handle(mut s: TcpStream, shell_dir: &Path) {
             Ok(n) => buf.extend_from_slice(&chunk[..n]),
         }
     };
-    let parsed = if complete { std::str::from_utf8(&buf).ok().and_then(parse_request) } else { None };
-    let _ = match parsed {
-        None => write_response(&mut s, &text(400, "Cerere invalida\n"), false),
-        Some((m, t)) => write_response(&mut s, &route(m, t, shell_dir), m == "HEAD"),
-    };
+    let head_only = buf.starts_with(b"HEAD ");
+    let resp = if complete { respond(&mut s, &buf, shell_dir, port) } else { text(400, "Cerere invalida\n") };
+    let _ = write_response(&mut s, &resp, head_only);
 }
 
-pub fn serve(listener: TcpListener, shell_dir: PathBuf) {
+/// `allowed_uid`: doar socket-urile acestui utilizator sunt servite (vezi peer::allowed_uid).
+pub fn serve(listener: TcpListener, shell_dir: PathBuf, allowed_uid: u32) {
+    let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
     let shell_dir = Arc::new(shell_dir);
     for conn in listener.incoming().flatten() {
         let dir = Arc::clone(&shell_dir);
-        std::thread::spawn(move || handle(conn, &dir));
+        // Verificarea UID-ului citeste /proc si poate astepta putin: o facem in firul conexiunii.
+        std::thread::spawn(move || handle(conn, &dir, port, allowed_uid));
     }
 }
 

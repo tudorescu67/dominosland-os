@@ -1,0 +1,15 @@
+[Plymouth Theme]
+Name=DominosLand
+Description=Ecranul de pornire DominosLand OS
+ModuleName=two-step
+
+[two-step]
+ImageDir=/usr/share/plymouth/themes/dominosland
+HorizontalAlignment=.5
+VerticalAlignment=.78
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.42
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x070b1a
+BackgroundEndColor=0x070b1a

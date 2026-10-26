@@ -26,6 +26,10 @@ cd os && sudo ./build.sh iso   # ISO-ul, doar pe Debian 13 cu live-build
 
 DominosLand OS nu are nucleu propriu: e bazat pe Linux pentru suportul de drivere. Nu propune un kernel propriu.
 
+**Memoria proiectului: [docs/MEMORIE.md](docs/MEMORIE.md)** (ce s-a făcut și decis), **starea și ce urmează: [docs/STATUS.md](docs/STATUS.md)**,
+**designul extinderilor: [docs/CONTINUARE.md](docs/CONTINUARE.md)**. Citește-le la începutul fiecărei sesiuni
+și actualizează-le (bifează, mută în „Făcut”, schimbă data) la finalul fiecărui pas important.
+
 ## Reguli
 
 - Repository-ul este public: **niciun secret** (token-uri, chei, parole, IP-uri de servere, ID-uri Discord personale).

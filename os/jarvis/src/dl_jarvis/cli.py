@@ -26,6 +26,13 @@ def run(text: str) -> tuple[int, str]:
 
 def main(argv=None) -> int:
     args = sys.argv[1:] if argv is None else list(argv)
+    # De ce "--": serviciul de sistem trimite textul ca un singur argument, iar un text care
+    # începe cu "-" nu trebuie să fie niciodată luat drept opțiune.
+    if "--" in args:
+        i = args.index("--")
+        code, msg = run(" ".join(args[i + 1:]))
+        print(msg)
+        return code
     if args == ["--version"]:
         print(f"dl-jarvis {__version__}")
         return 0

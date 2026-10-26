@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "description": "DominosLand Launcher: jocuri, servere live, streaming, clipuri, Game Booster si Jarvis AI.",
+  "homepage": "https://dominosland.com",
+  "author": "DominosLand",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tudorescu67/dominosland-os.git"
+  },
   "main": "electron/main.cjs",
   "scripts": {
     "dev:vite": "vite --host 127.0.0.1 --port 5178",
@@ -31,7 +37,10 @@
         "deb"
       ],
       "category": "Utility",
-      "icon": "resources/icon.png"
+      "icon": "resources/icon.png",
+      "executableName": "dominosland-launcher",
+      "maintainer": "DominosLand",
+      "synopsis": "Launcherul DominosLand"
     },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**"

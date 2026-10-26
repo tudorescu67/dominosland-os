@@ -102,7 +102,7 @@ Ordinea propusă după primul ISO verificat. Fiecare are un singur scop și se p
 
 1. [ ] Setează `main` ca branch implicit (Settings → Branches), apoi șterge `claude/hopeful-sagan-oa0dod` după merge.
 2. [ ] Pornește raportarea privată a vulnerabilităților (Settings → Security).
-3. [ ] Hotărăște licența: acum este Unlicense (domeniu public, oricine poate copia și vinde codul).
+3. [x] Licența: proprietară, hotărâtă de proprietar (commit `21b3a4b`). Codul e vizibil, dar fără drept de folosire fără permisiune scrisă.
 4. [ ] Protecție pe `main`: merge doar prin pull request, cu CI verde.
 
 ---

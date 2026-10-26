@@ -22,7 +22,9 @@ Vorbește cu mine în română, scurt, fără jargon. La final actualizează MEM
   API-ul NestJS, botul Discord, Jarvis AI, infrastructura), `tudorescu67/css-bans` (neatins).
 - Branch de lucru: `claude/hopeful-sagan-oa0dod`. Există și `main` (creat din același commit, nu e încă branch implicit).
   Pull request deschis: **#1** `claude/hopeful-sagan-oa0dod` → `main`, draft.
-- Licența: Unlicense (domeniu public), copiată din `pannel-all`. Proprietarul trebuie să hotărască dacă o păstrează.
+- Licența: **proprietară** (toate drepturile rezervate; codul e vizibil doar pentru transparență și verificări de securitate, fără drept
+  de copiere, modificare, distribuire sau vânzare). Schimbată de proprietar însuși, direct pe GitHub (commit `21b3a4b`), după ce
+  inițial fusese Unlicense copiată din `pannel-all`. Nu o schimba înapoi.
 
 ## Produsele (decizie fermă: sunt trei lucruri separate)
 
@@ -100,7 +102,7 @@ launcherul nu e OS-ul.
 
 Pornit ISO-ul într-o mașină virtuală; apoi, în ordine: Wi-Fi și sunet, actualizări din interfață, Jarvis conectat la Jarvis AI,
 Magazin (Flatpak) cu starea anti-cheat, Fișiere, GRUB/boot, depozit apt propriu. Proprietarul trebuie să: seteze `main` ca branch
-implicit, să facă merge la PR #1, să pornească raportarea privată de vulnerabilități, să decidă licența.
+implicit, să facă merge la PR #1, să pornească raportarea privată de vulnerabilități.
 
 ## Automatizări active
 

@@ -26,6 +26,15 @@ Un **sistem de operare separat**, construit pentru ecosistemul DominosLand. Nu e
 
 <b>🚧 În pregătire.</b> Launcherul și aplicația de telefon de mai jos rulează pe sistemele existente; DominosLand OS va fi produsul de sine stătător.
 
+Se construiește în patru limbaje. Rolurile de mai jos sunt propunerea de pornire:
+
+| Limbaj | Rol propus în DominosLand OS |
+| --- | --- |
+| **Rust** | Serviciile de sistem, unde contează siguranța memoriei: pornire, actualizări, rețea, securitate. |
+| **C++** | Părțile unde contează viteza maximă: grafică, compatibilitatea cu jocurile, motorul media. |
+| **JavaScript** | Interfața: desktopul, meniurile și aplicațiile DominosLand, ca în launcher. |
+| **Python** | Jarvis AI, automatizările și scripturile de sistem. |
+
 ### Aplicațiile
 
 <table>

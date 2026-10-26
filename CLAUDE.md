@@ -4,6 +4,8 @@ Repository **public** cu aplicațiile client ale ecosistemului DominosLand.
 
 **DominosLand OS** este un produs separat: un sistem de operare, nu o aplicație. Launcherul NU este DominosLand OS;
 nu le amesteca în nume, texte sau documentație.
+Limbajele DominosLand OS: Rust (servicii de sistem), C++ (grafică, jocuri, media), JavaScript (interfața), Python (Jarvis, automatizări).
+Rolurile sunt propunerea de pornire din README; confirmă cu proprietarul înainte de a le schimba.
 
 | Folder | Ce este | Stack |
 | --- | --- | --- |

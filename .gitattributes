@@ -1,0 +1,8 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Scripturile rulate pe Linux trebuie sa pastreze LF chiar daca repo-ul e clonat pe Windows.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.conf text eol=lf
+docker-compose*.yml text eol=lf
+*.py text eol=lf
+infra/tools/* text eol=lf

@@ -1,0 +1,86 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Release: construieste launcher-ul (Windows) si aplicatia Android si le pune in GitHub Releases.
+# Pagina principala a repo-ului trimite la releases/latest/download/..., deci numele fisierelor raman fixe.
+# Porneste la un tag v* (git tag v1.0.0 && git push origin v1.0.0) sau manual din tab-ul Actions.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versiunea (ex. 1.0.1) — se creeaza tag-ul v<versiune>'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    name: Ce se construieste
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.app.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: app
+        run: echo "mobile=$([ -f apps/mobile/app.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  launcher:
+    name: Launcher Windows
+    runs-on: windows-latest
+    defaults: { run: { working-directory: apps/desktop } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/desktop/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --win --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher
+          path: apps/desktop/release/DominosLand-Launcher-Setup.exe
+          if-no-files-found: error
+
+  android:
+    name: Aplicatia Android
+    needs: detect
+    if: needs.detect.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - run: npm ci
+      # Proiectul nativ se genereaza la build (nu se tine in git).
+      - run: npx expo prebuild --platform android --no-install
+      - run: ./gradlew assembleRelease --no-daemon
+        working-directory: apps/mobile/android
+      - run: cp android/app/build/outputs/apk/release/app-release.apk DominosLand.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: apps/mobile/DominosLand.apk
+          if-no-files-found: error
+
+  publish:
+    name: Publica release-ul
+    needs: [launcher, android]
+    # Daca aplicatia Android exista dar build-ul ei pica, nu publicam un release incomplet.
+    if: ${{ always() && needs.launcher.result == 'success' && (needs.android.result == 'success' || needs.android.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: DominosLand ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+          generate_release_notes: true
+          files: out/*

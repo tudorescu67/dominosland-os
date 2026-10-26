@@ -1,0 +1,21 @@
+<!-- Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DominosLand">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="240" rx="112" fill="url(#shine)"/>
+  <!-- Piesa de domino: doua jumatati (1 si 2 buline) -->
+  <rect x="166" y="86" width="180" height="340" rx="44" fill="none" stroke="#ffffff" stroke-width="26"/>
+  <path d="M184 256h144" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="171" r="26" fill="#ffffff"/>
+  <circle cx="214" cy="306" r="23" fill="#ffffff"/>
+  <circle cx="298" cy="376" r="23" fill="#ffffff"/>
+</svg>

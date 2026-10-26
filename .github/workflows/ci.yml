@@ -1,0 +1,51 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# CI: verifica la fiecare push / pull request ca launcher-ul se construieste.
+# Aplicatia mobila intra in CI doar dupa ce exista proiectul Expo (apps/mobile/app.json).
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  launcher:
+    name: Launcher (Electron)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/desktop } }
+    env:
+      # Doar verificam codul: binarul Electron se descarca doar la build-ul de release.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/desktop/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: for f in electron/*.cjs; do node --check "$f"; done
+
+  detect:
+    name: Exista aplicatia mobila?
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.app.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: app
+        run: echo "mobile=$([ -f apps/mobile/app.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  mobile:
+    name: Aplicatia mobila (Expo)
+    needs: detect
+    if: needs.detect.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
+      - run: npm ci
+      - run: npx tsc --noEmit -p .

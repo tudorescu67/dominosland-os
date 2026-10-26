@@ -1,0 +1,28 @@
+#!/bin/sh
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Ruleaza in chroot-ul imaginii, dupa instalarea pachetelor.
+set -e
+
+# Numele sistemului. /etc/os-release e de obicei un link catre /usr/lib/os-release (pachetul base-files);
+# il inlocuim cu un fisier propriu ca actualizarile Debian sa nu rescrie numele inapoi.
+. /usr/lib/os-release
+rm -f /etc/os-release
+cat > /etc/os-release <<EOF
+PRETTY_NAME="DominosLand OS"
+NAME="DominosLand OS"
+ID=dominosland
+ID_LIKE=debian
+VERSION_ID="${VERSION_ID}"
+VERSION_CODENAME=${VERSION_CODENAME}
+HOME_URL="https://dominosland.com"
+EOF
+
+# Romana implicit, cu engleza disponibila.
+sed -i 's/^# *\(ro_RO.UTF-8\)/\1/; s/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
+locale-gen
+update-locale LANG=ro_RO.UTF-8
+
+# Serviciile DominosLand pornesc la boot, iar sesiunea grafica inlocuieste login-ul text de pe tty1.
+systemctl enable dominosd.service
+systemctl enable dominosland-shell.service
+systemctl set-default graphical.target

@@ -49,3 +49,54 @@ jobs:
         with: { node-version: 24, cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
       - run: npm ci
       - run: npx tsc --noEmit -p .
+
+  # DominosLand OS: fiecare componenta in limbajul ei. ISO-ul se construieste local (live-build cere root si Debian 13).
+  os-services:
+    name: OS - dominosd (Rust)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: os/services } }
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --release
+
+  os-engine:
+    name: OS - dl-gamemode (C++)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: cmake -S os/engine -B os/engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build os/engine/build
+      - run: ctest --test-dir os/engine/build --output-on-failure
+
+  os-shell:
+    name: OS - interfata (JavaScript)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: os/shell } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: node --test
+      - run: node --check app.js && node --check format.js
+
+  os-jarvis:
+    name: OS - dl-jarvis (Python)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: os/jarvis } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - run: PYTHONPATH=src python -m unittest discover -s tests -v
+
+  os-image:
+    name: OS - scripturile imaginii
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n os/build.sh
+      - run: for f in os/image/auto/* os/image/config/hooks/normal/*; do sh -n "$f"; done
+      - run: systemd-analyze verify --man=no os/image/config/includes.chroot/etc/systemd/system/*.service || true

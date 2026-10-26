@@ -24,7 +24,9 @@
 
 Un **sistem de operare separat**, construit pentru ecosistemul DominosLand. Nu este o aplicație și nu este launcherul.
 
-<b>🚧 În pregătire.</b> Launcherul și aplicația de telefon de mai jos rulează pe sistemele existente; DominosLand OS va fi produsul de sine stătător.
+Este **bazat pe Linux** (Debian 13), pentru suportul de drivere: plăci video, Wi-Fi, rețea și periferice merg din prima zi, fără să scriem drivere de la zero. Ce este al DominosLand stă deasupra nucleului.
+
+<b>🚧 Prima versiune de lucru</b> în [`os/`](os): componentele se compilează și au teste, ISO-ul se construiește pe Debian 13.
 
 Se construiește în patru limbaje. Rolurile de mai jos sunt propunerea de pornire:
 
@@ -34,6 +36,8 @@ Se construiește în patru limbaje. Rolurile de mai jos sunt propunerea de porni
 | **C++** | Părțile unde contează viteza maximă: grafică, compatibilitatea cu jocurile, motorul media. |
 | **JavaScript** | Interfața: desktopul, meniurile și aplicațiile DominosLand, ca în launcher. |
 | **Python** | Jarvis AI, automatizările și scripturile de sistem. |
+
+Detaliile, arhitectura și construirea ISO-ului sunt în [os/README.md](os/README.md).
 
 ### Aplicațiile
 
@@ -85,7 +89,7 @@ Membrii staff-ului DominosLand văd în plus zona **Administrare**: Discord, Gam
    jocuri                                  land.com
 ```
 
-Acest repository conține deocamdată aplicațiile client: launcherul și aplicația de telefon. API-ul, botul, Jarvis și infrastructura serverului sunt în repository-ul privat al proiectului.
+Acest repository conține DominosLand OS (`os/`), launcherul și aplicația de telefon (`apps/`). API-ul, botul, Jarvis și infrastructura serverului sunt în repository-ul privat al proiectului.
 
 ## Pentru dezvoltatori
 

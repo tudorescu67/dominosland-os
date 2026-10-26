@@ -1,0 +1,16 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dominosland-jarvis"
+version = "0.1.0"
+description = "Asistentul local DominosLand OS: comenzi scurte în română, doar acțiuni din allowlist."
+requires-python = ">=3.11"
+
+[project.scripts]
+dl-jarvis = "dl_jarvis.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. -->
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Shell-ul rulează cu drepturile sesiunii OS a utilizatorului: fără cod sau resurse de la terți. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'">
+  <title>DominosLand OS</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon.png" alt="" class="logo">
+      <h1>DominosLand OS</h1>
+    </div>
+    <div class="clock" aria-live="off">
+      <span id="clock" class="clock-time">--:--</span>
+      <span id="date" class="clock-date"></span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Dale doar informative: shell-ul e doar pentru citire deocamdată. Nu există încă endpoint-uri
+         de acțiune, iar adăugarea lor cere un design protejat împotriva CSRF (token + verificare Origin). -->
+    <section class="tiles" aria-label="Aplicații">
+      <article class="tile" tabindex="0"><h2>Launcher</h2><p>Biblioteca ta de jocuri într-un singur loc.</p><span class="badge">în curând</span></article>
+      <article class="tile" tabindex="0"><h2>Jarvis</h2><p>Asistentul AI al sistemului.</p><span class="badge">în curând</span></article>
+      <article class="tile" tabindex="0"><h2>Mod joc</h2><p>Resurse maxime pentru jocul curent.</p><span class="badge">în curând</span></article>
+      <article class="tile" tabindex="0"><h2>Setări</h2><p>Rețea, sunet, afișaj și conturi.</p><span class="badge">în curând</span></article>
+      <article class="tile" tabindex="0"><h2>Fișiere</h2><p>Răsfoiește documentele și descărcările.</p><span class="badge">în curând</span></article>
+      <article class="tile" tabindex="0"><h2>Magazin</h2><p>Aplicații și jocuri noi.</p><span class="badge">în curând</span></article>
+    </section>
+
+    <section class="card" aria-labelledby="sys-title">
+      <h2 id="sys-title">Sistem</h2>
+      <dl class="sys">
+        <div><dt>Sistem de operare</dt><dd id="s-os">—</dd></div>
+        <div><dt>Nume calculator</dt><dd id="s-host">—</dd></div>
+        <div><dt>Kernel</dt><dd id="s-kernel">—</dd></div>
+        <div><dt>Pornit de</dt><dd id="s-uptime">—</dd></div>
+        <div>
+          <dt>Memorie folosită</dt>
+          <dd>
+            <div class="bar" role="progressbar" aria-label="Memorie folosită" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="s-mem-bar"><span id="s-mem-fill"></span></div>
+            <span id="s-mem">—</span>
+          </dd>
+        </div>
+        <div><dt>Încărcare</dt><dd id="s-load">—</dd></div>
+        <div><dt>Procesoare</dt><dd id="s-cpus">—</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <footer><p id="status" class="status" role="status">Se conectează…</p></footer>
+</body>
+</html>

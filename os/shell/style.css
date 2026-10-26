@@ -1,0 +1,58 @@
+/* Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. */
+:root {
+  --bg: #070b1a;
+  --text: #e8ecf8;
+  --muted: #8f9bbd;
+  --blue: #3b82f6;
+  --violet: #8b5cf6;
+  --grad: linear-gradient(135deg, var(--blue), var(--violet));
+  --glass: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.12);
+  /* Scalare fluidă: același aspect lizibil la 1080p și la 4K. */
+  font-size: clamp(16px, 0.85vw + 8px, 32px);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; display: flex; flex-direction: column; gap: 1.5rem;
+  padding: 1.5rem 2.5rem; color: var(--text); background: var(--bg);
+  background-image: radial-gradient(60rem 40rem at 10% -10%, rgba(59,130,246,.22), transparent),
+                    radial-gradient(50rem 40rem at 100% 0%, rgba(139,92,246,.2), transparent);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif; cursor: default;
+}
+.topbar { display: flex; justify-content: space-between; align-items: center; }
+.brand { display: flex; align-items: center; gap: 1rem; }
+.logo { width: 3rem; height: 3rem; border-radius: 0.75rem; }
+h1 { margin: 0; font-size: 1.75rem; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.clock { text-align: right; }
+.clock-time { display: block; font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.clock-date { color: var(--muted); text-transform: capitalize; }
+main { display: grid; gap: 1.5rem; grid-template-columns: 2fr 1fr; align-items: start; }
+.tiles { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+.tile, .card {
+  background: var(--glass); border: 1px solid var(--border); border-radius: 1.25rem;
+  backdrop-filter: blur(12px); padding: 1.25rem 1.5rem;
+}
+.tile { position: relative; min-height: 9rem; transition: transform .15s, border-color .15s; }
+.tile:hover { transform: translateY(-2px); border-color: var(--blue); }
+.tile h2, .card h2 { margin: 0 0 .4rem; font-size: 1.25rem; }
+.tile p { margin: 0; color: var(--muted); font-size: .95rem; }
+.badge {
+  position: absolute; right: 1rem; bottom: 1rem; padding: .15rem .7rem; border-radius: 999px;
+  font-size: .75rem; background: var(--grad); color: #fff;
+}
+.sys { margin: 0; display: grid; gap: .75rem; }
+.sys div { display: flex; flex-direction: column; gap: .15rem; }
+.sys dt { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.sys dd { margin: 0; overflow-wrap: anywhere; }
+.bar { height: .5rem; border-radius: 999px; background: var(--glass); overflow: hidden; margin-bottom: .3rem; }
+.bar span { display: block; height: 100%; width: 0; background: var(--grad); transition: width .4s; }
+.status { margin: 0; color: var(--muted); font-size: .9rem; }
+.status[data-state="error"] { color: #f87171; }
+.status[data-state="ok"] { color: #4ade80; }
+/* Contur vizibil pentru navigare cu tastatura sau gamepad. */
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+@media (max-width: 60rem) { main { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .tile:hover { transform: none; }
+}

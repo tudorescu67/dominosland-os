@@ -1,0 +1,21 @@
+#!/bin/sh
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Configuratia live-build pentru ISO-ul DominosLand OS (Debian 13 "trixie", amd64).
+set -e
+
+# non-free-firmware: fara el, multe placi Wi-Fi, placi video AMD si plăci de retea Realtek nu pornesc.
+# Asta e motivul pentru care DominosLand OS e bazat pe Linux: driverele exista deja.
+lb config noauto \
+	--distribution trixie \
+	--architectures amd64 \
+	--archive-areas "main contrib non-free non-free-firmware" \
+	--firmware-chroot true \
+	--firmware-binary true \
+	--debian-installer live \
+	--debian-installer-gui true \
+	--bootappend-live "boot=live components quiet splash hostname=dominosland username=dominos locales=ro_RO.UTF-8 keyboard-layouts=ro" \
+	--iso-application "DominosLand OS" \
+	--iso-publisher "DominosLand" \
+	--iso-volume "DominosLand OS" \
+	--image-name dominosland-os \
+	"${@}"

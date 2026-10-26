@@ -1,0 +1,26 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Interfata DominosLand OS pe tot ecranul, pe tty1, in locul login-ului text.
+[Unit]
+Description=DominosLand OS - interfata grafica
+After=systemd-user-sessions.service dominosd.service
+Wants=dominosd.service
+Conflicts=getty@tty1.service
+
+[Service]
+# Utilizatorul "dominos" e creat de live-config (username=dominos) pe imaginea live.
+User=dominos
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+UtmpIdentifier=tty1
+StandardInput=tty
+StandardOutput=journal
+Environment=XDG_SESSION_TYPE=wayland
+# Interfata e servita de dominosd pe aceeasi origine, ca API-ul local sa nu aiba nevoie de CORS.
+ExecStart=/usr/bin/cage -s -- /usr/bin/chromium --kiosk --ozone-platform=wayland --no-first-run --noerrdialogs --app=http://127.0.0.1:7410/
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target

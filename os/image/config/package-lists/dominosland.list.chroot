@@ -1,0 +1,39 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Pachetele de baza ale DominosLand OS.
+
+# Nucleul Linux si firmware-ul: aici e suportul de drivere.
+linux-image-amd64
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-realtek
+firmware-iwlwifi
+firmware-amd-graphics
+intel-microcode
+amd64-microcode
+
+# Grafica si jocuri: Vulkan si OpenGL prin Mesa (AMD, Intel; NVIDIA open prin nouveau).
+mesa-vulkan-drivers
+mesa-utils
+libgl1-mesa-dri
+
+# Sesiunea grafica: cage este un compozitor Wayland kiosk, potrivit pentru o singura interfata full-screen.
+cage
+chromium
+fonts-noto
+fonts-noto-color-emoji
+
+# Sunet, retea, sistem
+pipewire
+pipewire-pulse
+wireplumber
+network-manager
+sudo
+locales
+console-setup
+keyboard-configuration
+
+# Runtime pentru componentele DominosLand
+python3
+ffmpeg
+ca-certificates

@@ -1,0 +1,21 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+[Unit]
+Description=DominosLand OS - serviciul de sistem (stare + interfata)
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/dominosd serve --addr 127.0.0.1:7410 --shell-dir /usr/share/dominosland/shell
+Restart=on-failure
+# dominosd doar citeste /proc si serveste fisiere statice, deci nu are nevoie de root sau de scriere pe disc.
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target

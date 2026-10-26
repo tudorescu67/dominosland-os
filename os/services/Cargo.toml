@@ -1,0 +1,15 @@
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+[package]
+name = "dominosd"
+version = "0.1.0"
+edition = "2021"
+description = "Serviciul de sistem DominosLand OS: stare din /proc si shell-ul desktop pe loopback"
+
+[[bin]]
+name = "dominosd"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

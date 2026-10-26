@@ -6,3 +6,7 @@ Dockerfile* text eol=lf
 docker-compose*.yml text eol=lf
 *.py text eol=lf
 infra/tools/* text eol=lf
+# Imaginea DominosLand OS: scripturile live-build, hook-urile si unit-urile systemd ruleaza pe Debian.
+os/image/** text eol=lf
+*.service text eol=lf
+*.rs text eol=lf

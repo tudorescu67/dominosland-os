@@ -15,3 +15,8 @@ Thumbs.db
 .expo/
 apps/mobile/android/
 apps/mobile/ios/
+__pycache__/
+*.egg-info/
+os/services/target/
+# DominosLand OS: binarele compilate si imaginea asamblata de os/build.sh
+os/out/

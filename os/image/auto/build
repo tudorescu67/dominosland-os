@@ -1,0 +1,6 @@
+#!/bin/sh
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+set -e
+
+# Jurnalul complet ramane langa imagine: un build de ISO dureaza mult si erorile apar adesea la final.
+lb build noauto "${@}" 2>&1 | tee build.log

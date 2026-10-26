@@ -46,8 +46,10 @@ pub fn parse_addr(s: &str) -> Option<SocketAddr> {
         8 => IpAddr::V4(Ipv4Addr::from(word(ip)?)),
         32 => {
             let mut b = [0u8; 16];
-            for (i, chunk) in b.chunks_exact_mut(4).enumerate() {
-                chunk.copy_from_slice(&word(&ip[i * 8..i * 8 + 8])?);
+            // Index explicit, nu chunks_exact_mut: clippy-ul nou cere as_chunks_mut, care nu exista in
+            // Rust 1.85 (versiunea din Debian 13), iar aceeasi sursa trebuie sa treaca pe amandoua.
+            for i in 0..4 {
+                b[i * 4..i * 4 + 4].copy_from_slice(&word(&ip[i * 8..i * 8 + 8])?);
             }
             IpAddr::V6(Ipv6Addr::from(b))
         }

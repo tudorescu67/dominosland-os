@@ -10,3 +10,7 @@ infra/tools/* text eol=lf
 os/image/** text eol=lf
 *.service text eol=lf
 *.rs text eol=lf
+# Imaginile sunt binare: fara asta, regula de mai sus (eol=lf) ar strica PNG-urile din imagine.
+*.png binary
+*.jpg binary
+*.webp binary

@@ -31,6 +31,7 @@ Fără nucleu propriu: driverele pentru plăci video, Wi-Fi, rețea și periferi
 - [x] **ISO construit pe GitHub** (workflow „OS image”): container Debian 13 privilegiat; la pull request (standard), manual (standard / nvidia), la tag `os-v*` (ambele, în Releases).
 - [x] **Launcherul în imagine**: `.deb`-ul construit de electron-builder intră în `config/packages.chroot`; executabilul se numește `dominosland-launcher`, exact comanda pornită de butonul „Launcher”.
 - [x] **Ecran de pornire DominosLand** (Plymouth): logo-ul DL pe fundalul întunecat al interfeței.
+- [x] Al doilea review automat (Copilot) rezolvat: doar UID-ul utilizatorului sesiunii poate folosi dominosd (alt cont local sau root primește 403), iar răspunsurile au antete anti-încadrare (`X-Frame-Options`, `frame-ancestors`).
 
 ### De făcut (în ordinea recomandată)
 

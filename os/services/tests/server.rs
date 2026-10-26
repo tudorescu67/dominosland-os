@@ -72,6 +72,19 @@ fn script(dir: &Path, name: &str, body: &str) -> PathBuf {
     p
 }
 
+/// UID-ul efectiv al testului (al doilea camp din `Uid:`), acelasi cu al serverului pornit de el.
+fn my_uid() -> u32 {
+    let st = std::fs::read_to_string("/proc/self/status").unwrap();
+    let line = st.lines().find_map(|l| l.strip_prefix("Uid:")).unwrap();
+    line.split_whitespace().nth(1).unwrap().parse().unwrap()
+}
+
+/// Ambele antete anti-clickjacking, pe orice raspuns.
+fn assert_no_framing(r: &Resp) {
+    assert!(r.headers.contains("\r\nX-Frame-Options: DENY\r\n"), "{}", r.headers);
+    assert!(r.headers.contains("\r\nContent-Security-Policy: frame-ancestors 'none'"), "{}", r.headers);
+}
+
 fn tmpdir(tag: &str) -> PathBuf {
     let d = std::env::temp_dir().join(format!("dominosd-it-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
@@ -112,6 +125,19 @@ fn serves_shell_and_api() {
         assert!(!r.headers.to_lowercase().contains("access-control-"));
         assert!(r.headers.contains("Content-Length:") && r.headers.contains("Connection: close"));
     }
+    // Anti-framing pe pagini, API si erori (404, 400, 405, HEAD).
+    let r = get(a, "/");
+    assert_eq!(r.status, 200);
+    assert_no_framing(&r);
+    for r in [
+        get(a, "/api/status"),
+        get(a, "/nope"),
+        raw(a, "nonsens\r\n\r\n"),
+        get(a, "/api/actions/launcher"),
+        raw(a, &format!("HEAD / HTTP/1.1\r\nHost: {a}\r\n\r\n")),
+    ] {
+        assert_no_framing(&r);
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -130,6 +156,7 @@ fn host_check() {
         assert_eq!(r.status, 421, "{h}");
         assert_eq!(r.body, "{\"ok\":false,\"error\":\"Host nepermis\"}");
         assert!(!r.headers.to_lowercase().contains("access-control-"));
+        assert_no_framing(&r);
     }
     assert_eq!(bad(&format!("localhost:{port}")).status, 200);
     assert_eq!(bad(&format!("127.0.0.1:{port}")).status, 200);
@@ -262,5 +289,83 @@ fn gamemode_status_route() {
     }
     let srv = start(&dir, &[("DL_GAMEMODE_BIN", &dir.join("lipsa"))]);
     assert_eq!(get(&srv.addr, "/api/gamemode").body, "{\"active\":null}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn foreign_uid_is_refused() {
+    let dir = tmpdir("peeruid");
+    std::fs::write(dir.join("index.html"), "<h1>DominosLand</h1>").unwrap();
+    let ran = dir.join("ran.log");
+    let mark = format!("echo \"$0 $@\" >> {}", ran.display());
+    let sys = script(&dir, "systemctl", &mark);
+    let launcher = script(&dir, "launcher", &mark);
+    let jarvis = script(&dir, "dl-jarvis", &mark);
+    let gm = script(&dir, "dl-gamemode", &mark);
+    // Un alt cont local: socket-ul nostru are UID-ul nostru, serverul accepta doar pe urmatorul.
+    let foreign = (my_uid() + 1).to_string();
+    let srv = start(
+        &dir,
+        &[
+            ("DOMINOSD_ALLOWED_UID", Path::new(&foreign)),
+            ("DL_SYSTEMCTL", &sys),
+            ("DL_LAUNCHER_CMD", &launcher),
+            ("DL_JARVIS_BIN", &jarvis),
+            ("DL_GAMEMODE_BIN", &gm),
+        ],
+    );
+    let a = &srv.addr;
+    let want = "{\"ok\":false,\"error\":\"Conexiune nepermisa\"}";
+    let check = |what: &str, r: Resp| {
+        assert_eq!(r.status, 403, "{what}: {}", r.headers);
+        assert_eq!(r.body, want, "{what}");
+        assert_no_framing(&r);
+        assert!(r.headers.contains("nosniff") && !r.headers.to_lowercase().contains("access-control-"), "{what}");
+    };
+    // Cererile arata exact ca ale shell-ului (Host, Origin, antet, JSON): conteaza doar UID-ul.
+    check("GET /", get(a, "/"));
+    check("GET /api/status", get(a, "/api/status"));
+    check("GET /api/health", get(a, "/api/health"));
+    check("GET /api/gamemode", get(a, "/api/gamemode"));
+    check("POST gamemode", post(a, "/api/actions/gamemode", "{\"on\":true}"));
+    check("POST launcher", post(a, "/api/actions/launcher", "{}"));
+    check("POST jarvis", post(a, "/api/actions/jarvis", "{\"text\":\"salut\"}"));
+    // Verificarea vine inaintea oricarei parsari: nici Host-ul gresit, nici gunoiul nu mai ajung la 421/400.
+    check("Host gresit", raw(a, "GET / HTTP/1.1\r\nHost: evil.example\r\n\r\n"));
+    check("gunoi", raw(a, "nonsens\r\n\r\n"));
+    // Nici macar nu asteptam cererea: raspunsul vine si daca clientul nu trimite nimic.
+    let mut s = TcpStream::connect(a.as_str()).unwrap();
+    s.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+    let mut out = String::new();
+    s.read_to_string(&mut out).unwrap();
+    assert!(out.starts_with("HTTP/1.1 403 ") && out.ends_with(want), "{out}");
+    // Programele false n-au voie sa fi rulat (launcherul porneste in fundal, deci mai asteptam putin).
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    assert!(!ran.exists(), "a rulat: {:?}", std::fs::read_to_string(&ran));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn allowed_uid_override() {
+    let dir = tmpdir("uidenv");
+    std::fs::write(dir.join("index.html"), "x").unwrap();
+    // Setat explicit pe UID-ul nostru: totul merge ca de obicei.
+    let me = my_uid().to_string();
+    let srv = start(&dir, &[("DOMINOSD_ALLOWED_UID", Path::new(&me))]);
+    assert_eq!(get(&srv.addr, "/api/status").status, 200);
+    assert_eq!(get(&srv.addr, "/").status, 200);
+    drop(srv);
+    // Valoare invalida: serverul nu porneste deloc, in loc sa ghiceasca un UID.
+    for bad in ["", "abc", "+5", "-1", "0x10", "4294967296", " 5"] {
+        let out = Command::new(env!("CARGO_BIN_EXE_dominosd"))
+            .args(["serve", "--addr", "127.0.0.1:0", "--shell-dir"])
+            .arg(&dir)
+            .env("DOMINOSD_ALLOWED_UID", bad)
+            .output()
+            .unwrap();
+        assert_eq!(out.status.code(), Some(1), "{bad:?}");
+        assert!(out.stdout.is_empty(), "{bad:?}");
+        assert!(String::from_utf8_lossy(&out.stderr).contains("DOMINOSD_ALLOWED_UID"), "{bad:?}");
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }

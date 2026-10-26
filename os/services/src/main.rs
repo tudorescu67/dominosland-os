@@ -2,6 +2,7 @@
 mod actions;
 mod http;
 mod json;
+mod peer;
 mod status;
 
 use std::net::TcpListener;
@@ -46,6 +47,11 @@ fn serve(args: &[String]) {
             _ => usage_err(),
         }
     }
+    // Fara UID-ul permis nu putem pazi granita; mai bine nu pornim deloc decat sa servim pe oricine.
+    let allowed_uid = peer::allowed_uid().unwrap_or_else(|e| {
+        eprintln!("dominosd: {e}");
+        exit(1)
+    });
     let listener = TcpListener::bind(&addr).unwrap_or_else(|e| {
         eprintln!("dominosd: nu pot asculta pe {addr}: {e}");
         exit(1)
@@ -55,5 +61,5 @@ fn serve(args: &[String]) {
     println!("dominosd asculta pe {local}");
     use std::io::Write;
     let _ = std::io::stdout().flush();
-    http::serve(listener, PathBuf::from(dir));
+    http::serve(listener, PathBuf::from(dir), allowed_uid);
 }

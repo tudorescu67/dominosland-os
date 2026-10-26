@@ -1,12 +1,12 @@
 // Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
-// Serverul asculta doar pe loopback implicit: API-ul nu are autentificare.
-use crate::{actions, status};
+// Serverul asculta doar pe loopback implicit: API-ul nu are parole, granita e UID-ul clientului (peer.rs).
+use crate::{actions, peer, status};
 use std::fs;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const MAX_HEADER: usize = 8 * 1024;
 const MAX_BODY: usize = 4096;
@@ -171,8 +171,12 @@ fn read_body(s: &mut TcpStream, mut body: Vec<u8>, len: usize) -> Option<Vec<u8>
 }
 
 fn write_response(s: &mut TcpStream, r: &Response, head_only: bool) -> std::io::Result<()> {
+    // Anti-clickjacking pe orice raspuns: o pagina straina care ar incadra shell-ul ar putea pacali
+    // utilizatorul sa apese butoane care trimit cereri legitime. `frame-ancestors` nu are efect din
+    // <meta> (index.html), doar ca antet HTTP; X-Frame-Options acopera browserele mai vechi.
     let mut h = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\n\
+         X-Frame-Options: DENY\r\nContent-Security-Policy: frame-ancestors 'none'\r\n",
         r.code,
         reason(r.code),
         r.ctype,
@@ -230,7 +234,34 @@ fn respond(s: &mut TcpStream, buf: &[u8], shell_dir: &Path, port: u16) -> Respon
     route(target, shell_dir)
 }
 
-fn handle(mut s: TcpStream, shell_dir: &Path, port: u16) {
+/// Raspunsul pentru un client strain, fara sa citim sau sa interpretam cererea lui.
+fn refuse_connection(mut s: TcpStream, why: &str) {
+    eprintln!("dominosd: conexiune refuzata: {why}");
+    let _ = write_response(&mut s, &deny(403, "Conexiune nepermisa"), false);
+    // close() cu date necitite trimite RST in loc de FIN, iar clientul ar pierde raspunsul de mai sus.
+    // Trimitem intai FIN, apoi aruncam ce mai vine, cu limita de timp si de marime ca sa nu ne tina ocupati.
+    let _ = s.shutdown(Shutdown::Write);
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let mut sink = [0u8; 1024];
+    let mut left = MAX_HEADER + MAX_BODY;
+    while left > 0 {
+        let wait = deadline.saturating_duration_since(Instant::now());
+        if wait.is_zero() || s.set_read_timeout(Some(wait)).is_err() {
+            break;
+        }
+        match s.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => left = left.saturating_sub(n),
+        }
+    }
+}
+
+fn handle(mut s: TcpStream, shell_dir: &Path, port: u16, allowed_uid: u32) {
+    // Inainte de orice citire: un alt cont local poate imita perfect un browser (Host, Origin, antete),
+    // deci singurul lucru pe care nu-l poate falsifica e proprietarul socket-ului sau.
+    if let Err(why) = peer::check(&s, allowed_uid) {
+        return refuse_connection(s, &why);
+    }
     let _ = s.set_read_timeout(Some(Duration::from_secs(5)));
     let mut buf = Vec::new();
     let mut chunk = [0u8; 1024];
@@ -252,12 +283,14 @@ fn handle(mut s: TcpStream, shell_dir: &Path, port: u16) {
     let _ = write_response(&mut s, &resp, head_only);
 }
 
-pub fn serve(listener: TcpListener, shell_dir: PathBuf) {
+/// `allowed_uid`: doar socket-urile acestui utilizator sunt servite (vezi peer::allowed_uid).
+pub fn serve(listener: TcpListener, shell_dir: PathBuf, allowed_uid: u32) {
     let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
     let shell_dir = Arc::new(shell_dir);
     for conn in listener.incoming().flatten() {
         let dir = Arc::clone(&shell_dir);
-        std::thread::spawn(move || handle(conn, &dir, port));
+        // Verificarea UID-ului citeste /proc si poate astepta putin: o facem in firul conexiunii.
+        std::thread::spawn(move || handle(conn, &dir, port, allowed_uid));
     }
 }
 

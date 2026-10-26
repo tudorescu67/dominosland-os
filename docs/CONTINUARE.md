@@ -11,7 +11,7 @@ noua sesiune își citește singură starea din repository și de pe GitHub.
 Continuăm proiectul DominosLand din repository-ul public tudorescu67/dominosland-os.
 
 Pas 1 — orientare (nu schimba nimic încă):
-- Citește CLAUDE.md, docs/STATUS.md și os/README.md.
+- Citește CLAUDE.md, docs/MEMORIE.md (ce s-a făcut și s-a decis), docs/STATUS.md și os/README.md.
 - Verifică pe GitHub: pull request-urile deschise (în special #1, din branch-ul
   claude/hopeful-sagan-oa0dod în main), CI-ul pe ultimul commit, inclusiv workflow-ul
   „OS image” care construiește ISO-ul, și comentariile de review nerezolvate.
@@ -92,6 +92,25 @@ Toate acțiunile noi din `dominosd` folosesc modelul existent (`POST /api/action
   „instalat / se instalează / neinstalat” (`flatpak info --user <id>`).
 - `POST /api/actions/store/launch {id}` → `flatpak run <id>`.
 
+### 4b. Jocuri cu anti-cheat (Easy Anti-Cheat, BattlEye)
+
+Ce e posibil, spus cinstit:
+- **Easy Anti-Cheat și BattlEye merg pe Linux prin Proton numai dacă dezvoltatorul jocului a activat suportul
+  pentru Linux/Proton.** Atunci Steam instalează singur „Proton EasyAntiCheat Runtime” / „Proton BattlEye Runtime”, iar jocul merge.
+- Jocurile la care dezvoltatorul NU l-a activat (ex. Fortnite) și cele cu anti-cheat de kernel (ex. Vanguard la Valorant) nu merg
+  pe niciun Linux. **Nu încercăm ocoliri**: ar încălca termenii jocurilor și ar duce la ban.
+
+Ce face DominosLand OS:
+1. `vm.max_map_count = 2147483642` în `/etc/sysctl.d/80-dominosland-games.conf`, aceeași valoare ca SteamOS. Unele jocuri recente se
+   închid cu limita implicită a nucleului. (Pregătit împreună cu GRUB.)
+2. Steam din Magazin (Flatpak `com.valvesoftware.Steam`) vine cu Proton. Runtime-urile EAC/BattlEye se descarcă automat de Steam.
+   Pentru jocurile non-Steam (Epic prin Heroic), Heroic folosește aceleași runtime-uri prin Proton/umu.
+3. **Starea anti-cheat în Magazin**: lista publică AreWeAntiCheatYet (fișierul `games.json` din repository-ul GitHub
+   `AreWeAntiCheatYet/AreWeAntiCheatYet`) arată pentru fiecare joc: „Supported” (merge), „Running” (merge parțial),
+   „Broken” / „Denied” (nu merge). `dl-jarvis` (Python, are HTTPS) o descarcă și o păstrează în cache 24 h. Interfața arată starea
+   lângă fiecare joc, ca utilizatorul să știe dinainte.
+4. Nucleul Debian 13 (6.12) are deja `futex_waitv` (fsync), folosit de Proton pentru performanță; nu e nevoie de nucleu modificat.
+
 ### 5. Fișiere
 
 - Doar directoarele XDG ale utilizatorului (Imagini, Videoclipuri, Descărcări), citite din `~/.config/user-dirs.dirs`, și `~/Clipuri`.
@@ -117,7 +136,6 @@ Toate acțiunile noi din `dominosd` folosesc modelul existent (`POST /api/action
 ## Starea la momentul scrierii (26 octombrie 2026)
 
 - Pull request deschis: `claude/hopeful-sagan-oa0dod` → `main` (#1). `main` nu e încă branch-ul implicit pe GitHub.
-- Primul build al ISO-ului pe GitHub („OS image”) era în desfășurare; rezultatul se vede în tab-ul Actions.
-- În lucru: protecția `dominosd` pentru conexiunile altor utilizatori locali (verificarea UID-ului
-  conexiunii prin `/proc/net/tcp`) și antetele împotriva încadrării interfeței în alte pagini.
+- Primul build al ISO-ului pe GitHub („OS image”) a ieșit **verde** (~15 min). ISO-ul nu a fost încă pornit într-o mașină virtuală.
+- Făcut: `dominosd` acceptă doar conexiuni de la UID-ul sesiunii (`/proc/net/tcp`), plus antete anti-încadrare. Memoria completă: [MEMORIE.md](MEMORIE.md).
 - Ordinea extinderilor și ce e făcut: [STATUS.md](STATUS.md).

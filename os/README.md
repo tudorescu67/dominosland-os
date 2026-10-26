@@ -79,3 +79,5 @@ Ce s-a făcut și ce urmează: [docs/STATUS.md](../docs/STATUS.md).
 - Orice cerere cu alt `Host` decât `127.0.0.1` sau `localhost` este respinsă, ca un domeniu care se rezolvă la `127.0.0.1` (DNS rebinding) să nu poată folosi API-ul.
 - `dl-jarvis` nu rulează comenzi scrise liber, ci doar acțiunile din lista lui. `dominosd` îi dă textul ca un singur argument, fără shell.
 - `dominosd` rulează ca utilizatorul sesiunii, fără root. Modul joc primește root doar prin unit-ul `dl-gamemode@on|off.service`.
+- `dominosd` servește doar utilizatorul sesiunii: la fiecare conexiune caută în `/proc/net/tcp` cui aparține socket-ul clientului și răspunde 403 („Conexiune nepermisa”) oricărui alt cont local sau serviciu (și când proprietarul nu poate fi aflat), ca nimeni altcineva să nu pornească acțiuni sau modul joc în numele lui.
+- Interfața nu poate fi încadrată de alte pagini (clickjacking): fiecare răspuns `dominosd` are `X-Frame-Options: DENY` și `Content-Security-Policy: frame-ancestors 'none'`.

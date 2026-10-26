@@ -65,7 +65,7 @@ export default function Overlay() {
   return (
     <div className="overlay-root">
       <div className="overlay-head">
-        <img src="./logo-dominos.svg" alt="" width={22} height={22} />
+        <img src="./icon.png" alt="" width={22} height={22} />
         DominosLand
         <button className="icon-only" onClick={() => window.dominosDesktop?.overlay?.toggle()} aria-label="Ascunde overlay"><X size={16} /></button>
       </div>

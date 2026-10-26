@@ -1,6 +1,6 @@
 <!-- Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. -->
 <p align="center">
-  <img src="apps/desktop/public/icon.svg" width="112" alt="DominosLand">
+  <img src="apps/desktop/public/icon.png" width="112" alt="DominosLand">
 </p>
 
 <h1 align="center">DominosLand OS</h1>

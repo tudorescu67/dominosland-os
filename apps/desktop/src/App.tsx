@@ -164,7 +164,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo"><img src="/logo-dominos.svg" alt="DominosLand" /></div>
+          <div className="brand-logo"><img src="/icon.png" alt="DominosLand" /></div>
           <div className="login-brand-copy">
             <strong>DominosLand</strong>
             <span>LAUNCHER</span>
@@ -444,7 +444,7 @@ function DiscordProfile() {
         </div>
         {error && <div className="banner danger">{error}</div>}
         <div className="profile-row">
-          <img src={profile?.user?.discordAvatar || profile?.user?.avatar || '/icon.svg'} alt="" />
+          <img src={profile?.user?.discordAvatar || profile?.user?.avatar || '/icon.png'} alt="" />
           <div>
             <strong>{profile?.user?.displayName || profile?.user?.username || 'Discord profile'}</strong>
             <small>{profile?.message || 'Roles fetched from DominosLand Discord when bot token is configured.'}</small>

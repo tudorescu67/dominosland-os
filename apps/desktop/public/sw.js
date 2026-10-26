@@ -1,6 +1,6 @@
 /* Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. */
-const CACHE_NAME = 'dominos-control-shell-v1';
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'dominos-control-shell-v2';
+const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));

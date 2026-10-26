@@ -222,8 +222,8 @@ function registerIpcHandlers() {
 
 function createWindow() {
   const iconPath = app.isPackaged
-    ? path.join(__dirname, '..', 'dist', 'icon.svg')
-    : path.join(__dirname, '..', 'public', 'icon.svg');
+    ? path.join(__dirname, '..', 'dist', 'icon.png')
+    : path.join(__dirname, '..', 'public', 'icon.png');
 
   const win = new BrowserWindow({
     width: 1440,

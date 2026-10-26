@@ -57,6 +57,10 @@ sudo ./build.sh iso          # pe Debian 13, cu live-build: ISO-ul standard în 
 sudo ./build.sh iso nvidia   # varianta cu driverul NVIDIA proprietar
 ```
 
+Fără un calculator cu Debian: pe GitHub, **Actions → OS image → Run workflow** construiește ISO-ul într-un container Debian 13 și îl pune la „Artifacts”. La un tag `os-v*` (de exemplu `os-v0.1.0`), ambele variante ajung în Releases.
+
+ISO-ul include launcherul DominosLand (pachetul `.deb` construit din `apps/desktop`) și ecranul de pornire cu logo-ul DL.
+
 ISO-ul rezultat pornește în modul live și are și instalatorul Debian. Se poate încerca într-o mașină virtuală (VirtualBox, QEMU) înainte de un calculator real.
 
 | Varianta | Pentru cine |

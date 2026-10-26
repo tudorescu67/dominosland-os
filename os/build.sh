@@ -56,6 +56,16 @@ stage_image() {
 	cp -a "$OS_DIR"/shell/*.html "$OS_DIR"/shell/*.js "$OS_DIR"/shell/*.css "$OS_DIR"/shell/*.png \
 		"$root/usr/share/dominosland/shell/"
 
+	# Launcherul DominosLand ca pachet .deb (construit de electron-builder in apps/desktop).
+	# live-build instaleaza automat pachetele locale din config/packages.chroot.
+	local debs=("$OUT"/launcher/*.deb)
+	if [ -e "${debs[0]}" ]; then
+		mkdir -p "$image/config/packages.chroot"
+		cp "${debs[@]}" "$image/config/packages.chroot/"
+	else
+		echo "Atentie: nu exista $OUT/launcher/*.deb; imaginea nu va avea launcherul." >&2
+	fi
+
 	if [ "$VARIANT" = "nvidia" ]; then
 		cp "$OS_DIR/image/optional/nvidia.list.chroot" "$image/config/package-lists/"
 	fi

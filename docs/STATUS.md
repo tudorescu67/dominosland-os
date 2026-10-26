@@ -27,20 +27,32 @@ Fără nucleu propriu: driverele pentru plăci video, Wi-Fi, rețea și periferi
 - [x] Utilizatorul interfeței se alege singur la pornire (live: `dominos`; instalat: utilizatorul din installer).
 - [x] Varianta **NVIDIA** a ISO-ului (`sudo ./build.sh iso nvidia`), separată de cea standard.
 - [x] Teste pentru fiecare componentă și job-uri CI separate.
+- [x] Review automat (Copilot) rezolvat: blocare comună pentru modul joc, timeout respectat, stare nesigură = necunoscută, răspunsuri vechi ignorate în interfață.
+- [x] **ISO construit pe GitHub** (workflow „OS image”): container Debian 13 privilegiat; la pull request (standard), manual (standard / nvidia), la tag `os-v*` (ambele, în Releases).
+- [x] **Launcherul în imagine**: `.deb`-ul construit de electron-builder intră în `config/packages.chroot`; executabilul se numește `dominosland-launcher`, exact comanda pornită de butonul „Launcher”.
+- [x] **Ecran de pornire DominosLand** (Plymouth): logo-ul DL pe fundalul întunecat al interfeței.
 
 ### De făcut (în ordinea recomandată)
 
-1. [ ] **Primul ISO construit** pe un Debian 13 real: `sudo ./build.sh iso`, apoi pornit într-o mașină virtuală (QEMU / VirtualBox).
-       Pașii neverificați încă: lista de pachete, hook-ul, generatorul de utilizator, sesiunea cage + Chromium, regula polkit.
-2. [ ] Workflow GitHub Actions care construiește ISO-ul și îl pune în Releases (cere un runner cu Debian 13 și drepturi de root/privileged).
-3. [ ] Pachetul Linux al **launcherului** (`.deb`) inclus în imagine, ca butonul „Launcher” să pornească ceva real.
-       Comanda implicită este `dominosland-launcher` (se poate schimba prin `DL_LAUNCHER_CMD`).
-4. [ ] Plăcile „Setări”, „Fișiere”, „Magazin” din interfață (acum „în curând”).
-5. [ ] Wi-Fi și sunet din interfață (NetworkManager și PipeWire sunt deja instalate).
-6. [ ] Actualizări de sistem din interfață (`apt` printr-un unit systemd, ca la modul joc).
-7. [ ] Branding la pornire: ecran de boot (Plymouth) și GRUB cu logo-ul DominosLand.
-8. [ ] Jarvis conectat la Jarvis AI din ecosistem (acum răspunde doar local).
-9. [ ] Testat pe hardware real: AMD, Intel, NVIDIA (varianta nvidia), laptop cu Wi-Fi.
+1. [ ] **Pornit ISO-ul într-o mașină virtuală** (QEMU / VirtualBox) și verificat: interfața apare, butoanele merg, instalarea merge.
+       Comandă rapidă: `qemu-system-x86_64 -enable-kvm -m 4096 -cdrom dominosland-os-amd64.hybrid.iso`.
+2. [ ] Testat pe hardware real: AMD, Intel, NVIDIA (varianta nvidia), laptop cu Wi-Fi.
+3. [ ] Primul release al sistemului: `git tag os-v0.1.0 && git push origin os-v0.1.0`.
+
+## Recomandări de extindere
+
+Ordinea propusă după primul ISO verificat. Fiecare are un singur scop și se poate testa separat.
+
+| # | Extindere | De ce | Cum |
+| --- | --- | --- | --- |
+| 1 | **Setări: Wi-Fi și sunet** | Fără ele, pe un laptop sistemul e greu de folosit. | Acțiuni noi în dominosd peste `nmcli` și `wpctl`, cu aceeași protecție CSRF; placa „Setări” devine reală. |
+| 2 | **Actualizări din interfață** | Sistemul trebuie să primească patch-uri de securitate fără terminal. | Unit `dl-update.service` (`apt-get upgrade`) permis de polkit, ca la modul joc; progresul afișat în interfață. |
+| 3 | **Jarvis conectat la Jarvis AI** | Acum înțelege doar comenzile locale. | Întrebările necunoscute merg la API-ul DominosLand, cu contul din launcher; comenzile locale rămân pe calculator. |
+| 4 | **Magazin = biblioteca de jocuri** | Placa „Magazin” e goală. | Lista serverelor și jocurilor din API-ul DominosLand, cu instalare Steam / Flatpak. |
+| 5 | **Fișiere** | Utilizatorul are nevoie de capturi, clipuri și descărcări. | Un manager de fișiere simplu în interfață, doar în `/home`. |
+| 6 | **GRUB / meniul de boot cu logo** | Ultimul ecran care încă arată Debian. | Temă GRUB și isolinux cu culorile DominosLand. |
+| 7 | **Proton / Steam în imagine** | Majoritatea jocurilor de PC sunt pentru Windows. | `steam-installer` + Proton din `contrib`/`non-free`, pornite din Magazin. |
+| 8 | **Actualizare a imaginii prin rețea** | Fără reinstalare la fiecare versiune. | Pachete DominosLand într-un depozit apt propriu, semnat. |
 
 ---
 
@@ -56,7 +68,8 @@ Fără nucleu propriu: driverele pentru plăci video, Wi-Fi, rețea și periferi
 
 1. [ ] Primul release: `git tag v1.0.0 && git push origin v1.0.0` (butoanele de descărcare din README depind de el).
 2. [ ] Ținut sincronizat cu `pannel-all/apps/desktop` (aceeași aplicație în două locuri).
-3. [ ] Build Linux (`.deb` / AppImage) publicat și în Releases, pentru DominosLand OS.
+       Diferență cunoscută: aici `package.json` are `linux.executableName = dominosland-launcher` (pentru DominosLand OS).
+3. [ ] Build Linux (AppImage) publicat și în Releases; `.deb`-ul se construiește deja pentru imaginea OS.
 
 ---
 
@@ -102,3 +115,6 @@ cd os && sudo ./build.sh iso     # ISO standard (doar pe Debian 13 cu live-build
 cd os && sudo ./build.sh iso nvidia
 cd apps/desktop && npm ci && npm run build
 ```
+
+Pe GitHub: tab-ul **Actions → OS image → Run workflow** construiește ISO-ul fără un calculator cu Debian;
+fișierul apare la „Artifacts” în pagina rulării (păstrat 7 zile).

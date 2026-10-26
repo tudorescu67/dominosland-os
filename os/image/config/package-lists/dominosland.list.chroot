@@ -20,7 +20,8 @@ libgl1-mesa-dri
 # Sesiunea grafica: cage este un compozitor Wayland kiosk, potrivit pentru o singura interfata full-screen.
 cage
 chromium
-fonts-noto
+# fonts-noto-core in loc de fonts-noto: metapachetul aduce sute de MB de fonturi pentru scrieri rare.
+fonts-noto-core
 fonts-noto-color-emoji
 
 # Sunet, retea, sistem
@@ -34,6 +35,10 @@ polkitd
 locales
 console-setup
 keyboard-configuration
+
+# Ecranul de pornire cu logo-ul DominosLand
+plymouth
+plymouth-themes
 
 # Runtime pentru componentele DominosLand
 python3

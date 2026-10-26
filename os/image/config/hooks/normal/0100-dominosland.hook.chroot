@@ -28,3 +28,11 @@ systemctl enable dominosland-shell.service
 # Fisierele din includes.chroot pierd uneori bitul de executie (de ex. la o copie de pe Windows).
 chmod 755 /usr/local/bin/dominosland-session /usr/lib/systemd/system-generators/dominosland-user-generator
 systemctl set-default graphical.target
+
+# Ecranul de pornire: tema DominosLand foloseste animatia temei "spinner" si logo-ul nostru.
+# cp -n pastreaza watermark.png-ul DominosLand daca spinner are si el unul.
+THEME=/usr/share/plymouth/themes/dominosland
+cp -n /usr/share/plymouth/themes/spinner/*.png "$THEME/"
+plymouth-set-default-theme dominosland
+# Tema se citeste din initramfs, deci il regeneram dupa ce o schimbam.
+update-initramfs -u -k all

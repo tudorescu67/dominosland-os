@@ -5,6 +5,7 @@ use crate::json::{self, Flat};
 use std::io::{ErrorKind, Read};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Output, Stdio};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const MAX_OUT: usize = 64 * 1024;
@@ -17,18 +18,28 @@ pub enum RunError {
 }
 
 /// Citim pana la EOF dar pastram doar MAX_OUT: daca am inceta sa citim, copilul ar bloca pe pipe plin.
-fn drain(mut r: impl Read + Send + 'static) -> std::thread::JoinHandle<Vec<u8>> {
+/// Buffer-ul e partajat, ca sa putem lua ce s-a citit deja chiar daca cititorul nu termina niciodata
+/// (un proces nepot poate tine pipe-ul deschis dupa ce copilul direct a iesit).
+fn drain(mut r: impl Read + Send + 'static, done: mpsc::Sender<()>) -> Arc<Mutex<Vec<u8>>> {
+    let buf = Arc::new(Mutex::new(Vec::new()));
+    let shared = Arc::clone(&buf);
     std::thread::spawn(move || {
-        let (mut out, mut buf) = (Vec::new(), [0u8; 4096]);
-        while let Ok(n) = r.read(&mut buf) {
+        let mut chunk = [0u8; 4096];
+        while let Ok(n) = r.read(&mut chunk) {
             if n == 0 {
                 break;
             }
+            let mut out = shared.lock().unwrap_or_else(|e| e.into_inner());
             let room = MAX_OUT.saturating_sub(out.len());
-            out.extend_from_slice(&buf[..n.min(room)]);
+            out.extend_from_slice(&chunk[..n.min(room)]);
         }
-        out
-    })
+        let _ = done.send(());
+    });
+    buf
+}
+
+fn take(buf: &Arc<Mutex<Vec<u8>>>) -> Vec<u8> {
+    buf.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 pub fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Result<Output, RunError> {
@@ -42,7 +53,9 @@ pub fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Result<O
             ErrorKind::NotFound => RunError::NotFound,
             _ => RunError::Other(e.to_string()),
         })?;
-    let (out, err) = (drain(child.stdout.take().unwrap()), drain(child.stderr.take().unwrap()));
+    let (tx, rx) = mpsc::channel();
+    let out = drain(child.stdout.take().unwrap(), tx.clone());
+    let err = drain(child.stderr.take().unwrap(), tx);
     let deadline = Instant::now() + timeout;
     let status = loop {
         match child.try_wait() {
@@ -57,7 +70,14 @@ pub fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Result<O
             Err(e) => return Err(RunError::Other(e.to_string())),
         }
     };
-    Ok(Output { status, stdout: out.join().unwrap_or_default(), stderr: err.join().unwrap_or_default() })
+    // Asteptam cititorii doar pana la acelasi termen: cererea HTTP nu are voie sa depaseasca timeout-ul.
+    for _ in 0..2 {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if rx.recv_timeout(left).is_err() {
+            break;
+        }
+    }
+    Ok(Output { status, stdout: take(&out), stderr: take(&err) })
 }
 
 fn env_or(name: &str, default: &str) -> String {
@@ -76,14 +96,22 @@ fn ok_body(msg: &str) -> String {
 pub fn gamemode_status() -> String {
     let bin = env_or("DL_GAMEMODE_BIN", "dl-gamemode");
     let active = match run_with_timeout(&bin, &["status"], Duration::from_secs(5)) {
-        Ok(o) => match String::from_utf8_lossy(&o.stdout).trim() {
-            "pornit" => "true",
-            "oprit" => "false",
-            _ => "null",
-        },
+        Ok(o) => status_from(&o),
         Err(_) => "null",
     };
     format!("{{\"active\":{active}}}")
+}
+
+/// Un cod de iesire nenul inseamna ca starea nu e sigura, chiar daca s-a apucat sa scrie "pornit".
+fn status_from(o: &Output) -> &'static str {
+    if !o.status.success() {
+        return "null";
+    }
+    match String::from_utf8_lossy(&o.stdout).trim() {
+        "pornit" => "true",
+        "oprit" => "false",
+        _ => "null",
+    }
 }
 
 fn launcher() -> (u16, String) {
@@ -187,6 +215,26 @@ mod tests {
         let o = run_with_timeout("echo", &["salut"], Duration::from_secs(5)).unwrap();
         assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "salut");
         assert!(matches!(run_with_timeout("nu-exista-xyz", &[], Duration::from_secs(1)), Err(RunError::NotFound)));
+    }
+
+    #[test]
+    fn grandchild_holding_pipe_does_not_block_past_deadline() {
+        // Copilul iese imediat, dar `sleep` (nepotul) mosteneste stdout si il tine deschis 30 s.
+        let start = Instant::now();
+        let o = run_with_timeout("sh", &["-c", "echo gata; sleep 30 & exit 0"], Duration::from_millis(800)).unwrap();
+        assert!(start.elapsed() < Duration::from_secs(3), "a asteptat {:?}", start.elapsed());
+        assert!(o.status.success());
+        assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "gata");
+    }
+
+    #[test]
+    fn failed_status_command_is_unknown() {
+        let ok = run_with_timeout("sh", &["-c", "echo pornit"], Duration::from_secs(5)).unwrap();
+        assert_eq!(status_from(&ok), "true");
+        let off = run_with_timeout("sh", &["-c", "echo oprit"], Duration::from_secs(5)).unwrap();
+        assert_eq!(status_from(&off), "false");
+        let failed = run_with_timeout("sh", &["-c", "echo pornit; exit 1"], Duration::from_secs(5)).unwrap();
+        assert_eq!(status_from(&failed), "null");
     }
 
     #[test]

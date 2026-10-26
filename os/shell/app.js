@@ -1,5 +1,5 @@
 /* Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. */
-import { postAction, getGamemode, cleanJarvisText } from "./actions.js";
+import { postAction, getGamemode, cleanJarvisText, makeLatest } from "./actions.js";
 import { formatUptime, formatMemory, memoryUsage, formatLoad, formatClock } from "./format.js";
 
 const $ = (id) => document.getElementById(id);
@@ -60,15 +60,22 @@ function renderGamemode() {
   t.dataset.on = String(gameMode === true);
   t.disabled = gameMode === null || gmPending;
 }
+// Fiecare citire și fiecare comutare primește o generație nouă: un răspuns vechi, sosit după
+// o comutare, ar suprascrie starea nouă, iar următorul click ar repeta acțiunea în loc s-o inverseze.
+const gmLatest = makeLatest();
 async function refreshGamemode() {
   if (gmPending) return;
-  gameMode = await getGamemode();
+  const gen = gmLatest.next();
+  const active = await getGamemode();
+  if (!gmLatest.isCurrent(gen) || gmPending) return;
+  gameMode = active;
   renderGamemode();
 }
 
 async function toggleGamemode() {
   if (gmPending || gameMode === null) return;
   gmPending = true;
+  gmLatest.next();
   const t = $("t-gamemode");
   t.setAttribute("aria-busy", "true");
   renderGamemode();

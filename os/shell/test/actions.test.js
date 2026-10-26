@@ -1,7 +1,8 @@
 /* Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { postAction, getGamemode, cleanJarvisText } from "../actions.js";
+import {
+  makeLatest, postAction, getGamemode, cleanJarvisText } from "../actions.js";
 
 const fake = (status, body, calls = []) => async (url, init) => {
   calls.push({ url, init });
@@ -64,4 +65,15 @@ test("cleanJarvisText", () => {
   assert.equal(cleanJarvisText("  salut "), "salut");
   assert.equal(cleanJarvisText("a".repeat(500)).length, 500);
   assert.equal(cleanJarvisText("a".repeat(501)), null);
+});
+
+test("makeLatest: un răspuns vechi nu mai este curent după o cerere nouă", () => {
+  const latest = makeLatest();
+  const pollVechi = latest.next();
+  const comutare = latest.next();
+  assert.equal(latest.isCurrent(pollVechi), false);
+  assert.equal(latest.isCurrent(comutare), true);
+  const pollNou = latest.next();
+  assert.equal(latest.isCurrent(comutare), false);
+  assert.equal(latest.isCurrent(pollNou), true);
 });

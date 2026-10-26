@@ -6,7 +6,9 @@ Description=DominosLand OS - modul joc (%i)
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/dl-gamemode %i
+# on si off sunt unit-uri diferite, deci pot rula simultan (ex. buton + Jarvis). Fara blocare, off ar putea
+# restaura si sterge starea in timp ce on inca scrie guvernorii, iar procesorul ar ramane pe performance.
+ExecStart=/usr/bin/flock /run/dominosland/gamemode.lock /usr/local/bin/dl-gamemode %i
 RuntimeDirectory=dominosland
 RuntimeDirectoryPreserve=yes
 ProtectHome=yes

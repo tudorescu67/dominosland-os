@@ -47,3 +47,9 @@ export function cleanJarvisText(s) {
   const t = s.trim();
   return t.length === 0 || t.length > 500 ? null : t;
 }
+
+// Numără cererile ca să recunoaștem un răspuns depășit de unul mai nou.
+export function makeLatest() {
+  let gen = 0;
+  return { next: () => ++gen, isCurrent: (g) => g === gen };
+}

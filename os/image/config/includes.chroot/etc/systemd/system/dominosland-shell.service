@@ -2,13 +2,13 @@
 # Interfata DominosLand OS pe tot ecranul, pe tty1, in locul login-ului text.
 [Unit]
 Description=DominosLand OS - interfata grafica
-After=systemd-user-sessions.service dominosd.service
-Wants=dominosd.service
+After=systemd-user-sessions.service
 Conflicts=getty@tty1.service
 
 [Service]
-# Utilizatorul "dominos" e creat de live-config (username=dominos) pe imaginea live.
+# Utilizatorul real e ales la pornire de dominosland-user-generator; "dominos" ramane rezerva.
 User=dominos
+# PAMName creeaza o sesiune logind activa: de ea depinde regula polkit pentru modul joc.
 PAMName=login
 TTYPath=/dev/tty1
 TTYReset=yes
@@ -17,8 +17,7 @@ UtmpIdentifier=tty1
 StandardInput=tty
 StandardOutput=journal
 Environment=XDG_SESSION_TYPE=wayland
-# Interfata e servita de dominosd pe aceeasi origine, ca API-ul local sa nu aiba nevoie de CORS.
-ExecStart=/usr/bin/cage -s -- /usr/bin/chromium --kiosk --ozone-platform=wayland --no-first-run --noerrdialogs --app=http://127.0.0.1:7410/
+ExecStart=/usr/bin/cage -s -- /usr/local/bin/dominosland-session
 Restart=always
 RestartSec=2
 

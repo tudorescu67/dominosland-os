@@ -39,6 +39,25 @@ class CliTests(unittest.TestCase):
     def test_version(self):
         self.assertEqual(call(["--version"]), (0, f"dl-jarvis {__version__}\n"))
 
+    def test_double_dash_text(self):
+        code, out = call(["--", "ajutor"])
+        self.assertEqual(code, 0)
+        self.assertIn("Pot să fac", out)
+
+    def test_double_dash_stare(self):
+        with mock.patch.object(actions, "status", return_value=(0, "ok")):
+            self.assertEqual(call(["--", "stare"]), (0, "ok\n"))
+
+    def test_double_dash_version_is_text(self):
+        code, out = call(["--", "--version"])
+        self.assertEqual(code, 2)
+        self.assertIn("Nu știu încă", out)
+
+    def test_double_dash_single_arg_with_spaces(self):
+        with mock.patch.object(actions, "gamemode", return_value=(0, "ok")) as g:
+            call(["--", "-pornește modul joc"])
+        g.assert_called_once_with("on")
+
     def test_repl(self):
         with mock.patch("sys.stdin.isatty", return_value=True),                 mock.patch("builtins.input", side_effect=["ajutor", "iesire"]):
             code, out = call([])

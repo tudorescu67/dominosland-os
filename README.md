@@ -105,6 +105,7 @@ Implicit, aplicația vorbește cu `api.dominosland.com`. Pentru un API local, co
 
 - Un release nou se face cu un tag `v*` (de exemplu `v1.1.0`). GitHub Actions construiește installer-ul și îl publică în [Releases](../../releases).
 - Problemele de securitate se raportează privat, după [SECURITY.md](SECURITY.md).
+- Ce s-a făcut și ce urmează, pe fiecare produs: [docs/STATUS.md](docs/STATUS.md).
 
 <br>
 

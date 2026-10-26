@@ -23,16 +23,29 @@
   </header>
 
   <main>
-    <!-- Dale doar informative: shell-ul e doar pentru citire deocamdată. Nu există încă endpoint-uri
-         de acțiune, iar adăugarea lor cere un design protejat împotriva CSRF (token + verificare Origin). -->
+    <!-- Acțiunile trec prin dominosd, protejat împotriva CSRF prin antetul personalizat X-DominosLand-Action
+         plus verificarea Origin/Host. Dalele fără acțiune rămân „în curând”. -->
     <section class="tiles" aria-label="Aplicații">
-      <article class="tile" tabindex="0"><h2>Launcher</h2><p>Biblioteca ta de jocuri într-un singur loc.</p><span class="badge">în curând</span></article>
-      <article class="tile" tabindex="0"><h2>Jarvis</h2><p>Asistentul AI al sistemului.</p><span class="badge">în curând</span></article>
-      <article class="tile" tabindex="0"><h2>Mod joc</h2><p>Resurse maxime pentru jocul curent.</p><span class="badge">în curând</span></article>
-      <article class="tile" tabindex="0"><h2>Setări</h2><p>Rețea, sunet, afișaj și conturi.</p><span class="badge">în curând</span></article>
-      <article class="tile" tabindex="0"><h2>Fișiere</h2><p>Răsfoiește documentele și descărcările.</p><span class="badge">în curând</span></article>
-      <article class="tile" tabindex="0"><h2>Magazin</h2><p>Aplicații și jocuri noi.</p><span class="badge">în curând</span></article>
+      <button type="button" class="tile" id="t-launcher"><h2>Launcher</h2><p>Biblioteca ta de jocuri într-un singur loc.</p><span class="badge">Deschide</span></button>
+      <button type="button" class="tile" id="t-jarvis" aria-haspopup="dialog"><h2>Jarvis</h2><p>Asistentul AI al sistemului.</p><span class="badge">Întreabă</span></button>
+      <button type="button" class="tile" id="t-gamemode"><h2>Mod joc</h2><p>Resurse maxime pentru jocul curent.</p><span class="badge" id="gm-state">Necunoscut</span></button>
+      <article class="tile soon" tabindex="0"><h2>Setări</h2><p>Rețea, sunet, afișaj și conturi.</p><span class="badge">în curând</span></article>
+      <article class="tile soon" tabindex="0"><h2>Fișiere</h2><p>Răsfoiește documentele și descărcările.</p><span class="badge">în curând</span></article>
+      <article class="tile soon" tabindex="0"><h2>Magazin</h2><p>Aplicații și jocuri noi.</p><span class="badge">în curând</span></article>
     </section>
+
+    <dialog id="jarvis" class="jarvis" aria-labelledby="j-title">
+      <form id="j-form" method="dialog">
+        <h2 id="j-title">Jarvis</h2>
+        <label for="j-input">Întreabă-l pe Jarvis</label>
+        <input id="j-input" type="text" maxlength="500" autocomplete="off" required>
+        <div class="j-row">
+          <button type="submit" id="j-send" class="btn">Trimite</button>
+          <button type="button" id="j-close" class="btn ghost">Închide</button>
+        </div>
+        <pre id="j-answer" class="j-answer" aria-live="polite"></pre>
+      </form>
+    </dialog>
 
     <section class="card" aria-labelledby="sys-title">
       <h2 id="sys-title">Sistem</h2>
@@ -54,6 +67,9 @@
     </section>
   </main>
 
-  <footer><p id="status" class="status" role="status">Se conectează…</p></footer>
+  <footer>
+    <p id="status" class="status" role="status">Se conectează…</p>
+    <p id="toast" class="toast" role="status" aria-live="polite" hidden></p>
+  </footer>
 </body>
 </html>

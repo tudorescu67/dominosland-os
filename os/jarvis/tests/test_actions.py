@@ -40,40 +40,71 @@ class StatusTests(unittest.TestCase):
 
 
 class GamemodeTests(unittest.TestCase):
+    def _ok(self, out=""):
+        return lambda a, **k: SimpleNamespace(returncode=0, stdout=out, stderr="")
+
     def test_exact_argv_no_shell(self):
+        for cmd, msg in (("on", "Modul joc a fost pornit."), ("off", "Modul joc a fost oprit.")):
+            seen = {}
+
+            def run(args, **kw):
+                seen["args"], seen["kw"] = args, kw
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+            with self.subTest(cmd=cmd), mock.patch.dict("os.environ", {}, clear=True):
+                self.assertEqual(actions.gamemode(cmd, run), (0, msg))
+                self.assertEqual(seen["args"], ["systemctl", "start", f"dl-gamemode@{cmd}.service"])
+                self.assertFalse(seen["kw"].get("shell", False))
+                self.assertEqual(seen["kw"]["timeout"], 15)
+                self.assertIs(seen["kw"]["capture_output"], True)
+                self.assertIs(seen["kw"]["text"], True)
+
+    def test_custom_systemctl(self):
+        seen = []
+        with mock.patch.dict("os.environ", {"DL_SYSTEMCTL": "/x/sc"}):
+            actions.gamemode("off", lambda a, **k: seen.append(a) or SimpleNamespace(returncode=0, stdout="", stderr=""))
+        self.assertEqual(seen, [["/x/sc", "start", "dl-gamemode@off.service"]])
+
+    def test_status_argv_and_sentences(self):
         seen = {}
 
         def run(args, **kw):
             seen["args"], seen["kw"] = args, kw
-            return SimpleNamespace(returncode=0, stdout="pornit\n", stderr="")
+            return SimpleNamespace(returncode=0, stdout=seen["out"], stderr="")
 
         with mock.patch.dict("os.environ", {}, clear=True):
-            self.assertEqual(actions.gamemode("on", run), (0, "pornit"))
-        self.assertEqual(seen["args"], ["dl-gamemode", "on"])
-        self.assertFalse(seen["kw"].get("shell", False))
-        self.assertEqual(seen["kw"]["timeout"], 10)
-
-    def test_custom_bin(self):
-        seen = []
+            for out, msg in (("pornit\n", "Modul joc este pornit."), ("oprit\n", "Modul joc este oprit.")):
+                seen["out"] = out
+                self.assertEqual(actions.gamemode("status", run), (0, msg))
+                self.assertEqual(seen["args"], ["dl-gamemode", "status"])
+                self.assertFalse(seen["kw"].get("shell", False))
         with mock.patch.dict("os.environ", {"DL_GAMEMODE_BIN": "/opt/gm"}):
-            actions.gamemode("off", lambda a, **k: seen.append(a) or SimpleNamespace(returncode=0, stdout="", stderr=""))
-        self.assertEqual(seen, [["/opt/gm", "off"]])
+            actions.gamemode("status", run)
+        self.assertEqual(seen["args"], ["/opt/gm", "status"])
 
-    def test_missing(self):
+    def test_missing_systemctl(self):
         def run(*a, **k):
             raise FileNotFoundError
 
-        self.assertEqual(actions.gamemode("status", run), (1, "dl-gamemode nu este instalat."))
+        self.assertEqual(actions.gamemode("on", run), (1, "systemctl nu este disponibil."))
 
     def test_nonzero_passes_stderr(self):
         run = lambda a, **k: SimpleNamespace(returncode=3, stdout="", stderr="eroare x\n")
-        self.assertEqual(actions.gamemode("on", run), (3, "eroare x"))
+        self.assertEqual(actions.gamemode("on", run), (1, "eroare x"))
+
+    def test_nonzero_generic(self):
+        run = lambda a, **k: SimpleNamespace(returncode=4, stdout="", stderr="")
+        code, msg = actions.gamemode("off", run)
+        self.assertEqual(code, 1)
+        self.assertTrue(msg)
 
     def test_timeout(self):
         def run(*a, **k):
-            raise subprocess.TimeoutExpired("x", 10)
+            raise subprocess.TimeoutExpired("x", 15)
 
-        self.assertEqual(actions.gamemode("on", run)[0], 1)
+        code, msg = actions.gamemode("on", run)
+        self.assertEqual(code, 1)
+        self.assertIn("la timp", msg)
 
     def test_rejects_other_cmd(self):
         self.assertEqual(actions.gamemode("; rm -rf /", lambda *a, **k: self.fail("rulat"))[0], 2)

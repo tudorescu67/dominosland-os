@@ -22,7 +22,9 @@ sed -i 's/^# *\(ro_RO.UTF-8\)/\1/; s/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
 locale-gen
 update-locale LANG=ro_RO.UTF-8
 
-# Serviciile DominosLand pornesc la boot, iar sesiunea grafica inlocuieste login-ul text de pe tty1.
-systemctl enable dominosd.service
+# Sesiunea grafica inlocuieste login-ul text de pe tty1; dominosd porneste in ea (dominosland-session).
 systemctl enable dominosland-shell.service
+
+# Fisierele din includes.chroot pierd uneori bitul de executie (de ex. la o copie de pe Windows).
+chmod 755 /usr/local/bin/dominosland-session /usr/lib/systemd/system-generators/dominosland-user-generator
 systemctl set-default graphical.target

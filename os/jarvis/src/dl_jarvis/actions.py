@@ -47,16 +47,24 @@ def status(fetch=_http_fetch) -> Result:
 def gamemode(cmd: str, run=subprocess.run) -> Result:
     if cmd not in ("on", "off", "status"):
         return 2, "Comandă necunoscută pentru modul joc."
+    # De ce unitate systemd: scrierea guvernatorilor CPU cere root, iar asistentul rulează ca
+    # utilizatorul sesiunii; o regulă polkit permite doar pornirea acestor două unități.
+    if cmd == "status":
+        argv = [os.environ.get("DL_GAMEMODE_BIN", "dl-gamemode"), "status"]
+    else:
+        argv = [os.environ.get("DL_SYSTEMCTL", "systemctl"), "start", f"dl-gamemode@{cmd}.service"]
     try:
-        p = run([os.environ.get("DL_GAMEMODE_BIN", "dl-gamemode"), cmd],
-                capture_output=True, text=True, timeout=10)
+        p = run(argv, capture_output=True, text=True, timeout=15)
     except FileNotFoundError:
-        return 1, "dl-gamemode nu este instalat."
+        return 1, "systemctl nu este disponibil." if cmd != "status" else "dl-gamemode nu este instalat."
     except subprocess.TimeoutExpired:
-        return 1, "dl-gamemode nu a răspuns la timp."
+        return 1, "Comanda pentru modul joc nu a răspuns la timp."
     if p.returncode != 0:
-        return p.returncode, (p.stderr or "").strip() or "dl-gamemode a eșuat."
-    return 0, (p.stdout or "").strip() or "Gata."
+        return 1, (p.stderr or "").strip() or "Comanda pentru modul joc a eșuat."
+    if cmd == "status":
+        out = (p.stdout or "").strip()
+        return 0, {"pornit": "Modul joc este pornit.", "oprit": "Modul joc este oprit."}.get(out, out or "Gata.")
+    return 0, "Modul joc a fost pornit." if cmd == "on" else "Modul joc a fost oprit."
 
 
 def launcher(spawn=subprocess.Popen) -> Result:

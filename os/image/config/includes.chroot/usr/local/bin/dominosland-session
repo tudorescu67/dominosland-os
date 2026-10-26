@@ -1,0 +1,25 @@
+#!/bin/sh
+# Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+# Sesiunea grafica DominosLand OS, pornita de cage ca utilizatorul de pe ecran.
+#
+# dominosd ruleaza aici, in sesiune, si nu ca serviciu de sistem: actiunile din interfata
+# (launcherul, Jarvis) trebuie sa porneasca programe pe ecranul utilizatorului, cu WAYLAND_DISPLAY-ul lui.
+# Modul joc, care cere root, trece printr-un unit systemd permis de polkit (dl-gamemode@.service).
+set -eu
+
+ADDR="127.0.0.1:7410"
+URL="http://$ADDR/"
+
+/usr/local/bin/dominosd serve --addr "$ADDR" --shell-dir /usr/share/dominosland/shell &
+
+# Chromium porneste mai repede decat dominosd; fara asteptare ar afisa o pagina de eroare.
+i=0
+until python3 -c "import urllib.request,sys; urllib.request.urlopen('${URL}api/health', timeout=1)" 2>/dev/null; do
+	i=$((i + 1))
+	[ "$i" -ge 50 ] && break
+	sleep 0.2
+done
+
+# exec: cand utilizatorul inchide sesiunea, systemd opreste tot grupul de procese, inclusiv dominosd.
+exec /usr/bin/chromium --kiosk --ozone-platform=wayland --no-first-run --noerrdialogs \
+	--disable-features=Translate --app="$URL"

@@ -29,6 +29,8 @@ pipewire-pulse
 wireplumber
 network-manager
 sudo
+# polkit: permite utilizatorului sa porneasca modul joc fara parola, doar pe acel unit.
+polkitd
 locales
 console-setup
 keyboard-configuration

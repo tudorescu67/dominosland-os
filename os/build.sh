@@ -3,7 +3,9 @@
 # Construieste componentele DominosLand OS si, la cerere, ISO-ul.
 #
 #   ./build.sh            compileaza si testeaza componentele (Rust, C++, JavaScript, Python)
+#   ./build.sh test-image testeaza scripturile imaginii (alegerea utilizatorului)
 #   sudo ./build.sh iso   in plus construieste ISO-ul (doar pe Debian 13, cu live-build)
+#   sudo ./build.sh iso nvidia   varianta cu driverul NVIDIA proprietar
 #
 # Componentele se compileaza pe acelasi sistem ca imaginea (Debian 13), ca binarele sa foloseasca
 # aceeasi versiune de glibc ca DominosLand OS.
@@ -49,9 +51,14 @@ stage_image() {
 	install -Dm755 "$OS_DIR/services/target/release/dominosd" "$root/usr/local/bin/dominosd"
 	install -Dm755 "$OUT/engine/dl-gamemode" "$root/usr/local/bin/dl-gamemode"
 
+	# Doar fisierele servite de dominosd; testele si package.json nu au ce cauta in sistem.
 	mkdir -p "$root/usr/share/dominosland/shell"
-	cp -a "$OS_DIR/shell/index.html" "$OS_DIR/shell/app.js" "$OS_DIR/shell/format.js" \
-		"$OS_DIR/shell/style.css" "$OS_DIR/shell/icon.png" "$root/usr/share/dominosland/shell/"
+	cp -a "$OS_DIR"/shell/*.html "$OS_DIR"/shell/*.js "$OS_DIR"/shell/*.css "$OS_DIR"/shell/*.png \
+		"$root/usr/share/dominosland/shell/"
+
+	if [ "$VARIANT" = "nvidia" ]; then
+		cp "$OS_DIR/image/optional/nvidia.list.chroot" "$image/config/package-lists/"
+	fi
 
 	mkdir -p "$root/usr/lib/python3/dist-packages"
 	cp -a "$OS_DIR/jarvis/src/dl_jarvis" "$root/usr/lib/python3/dist-packages/"
@@ -61,7 +68,8 @@ stage_image() {
 from dl_jarvis.cli import main
 raise SystemExit(main())
 EOF
-	chmod 755 "$root/usr/local/bin/dl-jarvis"
+	chmod 755 "$root/usr/local/bin/dl-jarvis" "$root/usr/local/bin/dominosland-session" \
+		"$root/usr/lib/systemd/system-generators/dominosland-user-generator"
 	chmod 755 "$image"/auto/* "$image"/config/hooks/normal/*
 	echo "$image"
 }
@@ -73,14 +81,22 @@ build_iso() {
 		echo "ISO-ul se construieste pe Debian 13 (trixie)." >&2
 		exit 1
 	}
-	local image
+	local image name="dominosland-os"
+	[ "$VARIANT" = "nvidia" ] && name="dominosland-os-nvidia"
 	image="$(stage_image | tail -n1)"
-	(cd "$image" && lb clean && lb config && lb build)
+	(cd "$image" && lb clean && lb config --image-name "$name" && lb build)
 	ls -lh "$image"/*.iso
 }
 
+VARIANT="${2:-standard}"
+case "$VARIANT" in
+	standard | nvidia) ;;
+	*) echo "Varianta necunoscuta: $VARIANT (standard sau nvidia)" >&2; exit 2 ;;
+esac
+
 case "$MODE" in
 	components) build_components ;;
+	test-image) sh "$OS_DIR/image/tests/test-user-generator.sh" ;;
 	iso) build_components && build_iso ;;
-	*) echo "Folosire: $0 [components|iso]" >&2; exit 2 ;;
+	*) echo "Folosire: $0 [components | test-image | iso [standard|nvidia]]" >&2; exit 2 ;;
 esac

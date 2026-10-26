@@ -1,4 +1,5 @@
 // Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex.
+mod actions;
 mod http;
 mod json;
 mod status;

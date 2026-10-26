@@ -1,7 +1,7 @@
 <!-- Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. -->
-# DominosLand OS + Launcher (desktop)
+# DominosLand Launcher (desktop)
 
-Aplicația desktop a ecosistemului DominosLand, pentru Windows și Linux.
+Launcherul DominosLand pentru Windows și Linux. Este o aplicație; DominosLand OS, sistemul de operare, este un produs separat.
 
 ## Structură
 

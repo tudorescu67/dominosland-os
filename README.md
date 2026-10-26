@@ -3,11 +3,11 @@
   <img src="apps/desktop/public/icon.png" width="112" alt="DominosLand">
 </p>
 
-<h1 align="center">DominosLand OS</h1>
+<h1 align="center">DominosLand</h1>
 
 <p align="center">
-  Ecosistemul de aplicații DominosLand: jocuri, servere live, streaming, comunitate Discord și Jarvis AI.<br>
-  Un singur cont, aceleași servere, pe calculator și pe telefon.
+  Ecosistemul DominosLand: jocuri, servere live, streaming, comunitate Discord și Jarvis AI.<br>
+  Un singur cont, aceleași servere: pe DominosLand OS, pe calculator și pe telefon.
 </p>
 
 <p align="center">
@@ -18,12 +18,20 @@
 
 <br>
 
-## Aplicațiile
+## Produsele
+
+### 💿 DominosLand OS
+
+Un **sistem de operare separat**, construit pentru ecosistemul DominosLand. Nu este o aplicație și nu este launcherul.
+
+<b>🚧 În pregătire.</b> Launcherul și aplicația de telefon de mai jos rulează pe sistemele existente; DominosLand OS va fi produsul de sine stătător.
+
+### Aplicațiile
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <h3>🖥️ DominosLand OS + Launcher</h3>
+      <h3>🖥️ DominosLand Launcher</h3>
       <p>Aplicația desktop pentru Windows și Linux. Pornești jocurile, intri pe serverele DominosLand, faci live pe mai multe platforme deodată și salvezi clipuri, fără să schimbi aplicația.</p>
       <p><a href="../../releases/latest/download/DominosLand-Launcher-Setup.exe"><b>⬇ Windows 10 / 11 (64-bit)</b></a></p>
       <sub>Codul: <a href="apps/desktop">apps/desktop</a> · Electron + React + Vite</sub>
@@ -54,12 +62,11 @@ Membrii staff-ului DominosLand văd în plus zona **Administrare**: Discord, Gam
 ## Cum se leagă ecosistemul
 
 ```text
-        ┌─────────────────────┐      ┌────────────────────────┐
-        │ DominosLand OS      │      │ DominosLand telefon    │
-        │ + Launcher (PC)     │      │ (Android / iOS)        │
-        └──────────┬──────────┘      └───────────┬────────────┘
-                   │      HTTPS + WebSocket      │
-                   └──────────────┬──────────────┘
+   ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+   │ DominosLand OS   │   │ Launcher (PC)    │   │ Telefon          │
+   │ sistem de operare│   │ Windows / Linux  │   │ Android / iOS    │
+   └────────┬─────────┘   └────────┬─────────┘   └────────┬─────────┘
+            └──────────── HTTPS + WebSocket ──────────────┘
                                   ▼
                      api.dominosland.com (cont, roluri)
                                   │
@@ -69,7 +76,7 @@ Membrii staff-ului DominosLand văd în plus zona **Administrare**: Discord, Gam
    jocuri                                  land.com
 ```
 
-Acest repository conține aplicațiile client. API-ul, botul, Jarvis și infrastructura serverului sunt în repository-ul privat al proiectului.
+Acest repository conține deocamdată aplicațiile client: launcherul și aplicația de telefon. API-ul, botul, Jarvis și infrastructura serverului sunt în repository-ul privat al proiectului.
 
 ## Pentru dezvoltatori
 

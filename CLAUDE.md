@@ -1,10 +1,13 @@
-# DominosLand OS — ghid pentru Claude Code
+# DominosLand (repository public) — ghid pentru Claude Code
 
 Repository **public** cu aplicațiile client ale ecosistemului DominosLand.
 
+**DominosLand OS** este un produs separat: un sistem de operare, nu o aplicație. Launcherul NU este DominosLand OS;
+nu le amesteca în nume, texte sau documentație.
+
 | Folder | Ce este | Stack |
 | --- | --- | --- |
-| `apps/desktop` | DominosLand OS + Launcher (Windows / Linux) | Electron + React + Vite; FFmpeg în `electron/media-engine.cjs` |
+| `apps/desktop` | DominosLand Launcher (Windows / Linux) | Electron + React + Vite; FFmpeg în `electron/media-engine.cjs` |
 | `apps/mobile` | varianta pentru telefon (în lucru) | Expo / React Native |
 
 API-ul, botul Discord, Jarvis și infrastructura sunt în repository-ul privat `pannel-all`.

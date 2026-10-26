@@ -1,7 +1,7 @@
 <!-- Copyright (c) 2026-2027 DominosLand by Capitanul Burcea-Alex. -->
 # DominosLand pentru telefon
 
-> 🚧 **În lucru.** Aici va fi varianta mobilă a DominosLand OS. Folderul conține deocamdată planul.
+> 🚧 **În lucru.** Aici va fi aplicația DominosLand pentru telefon. Folderul conține deocamdată planul.
 
 ## Ce va face
 
